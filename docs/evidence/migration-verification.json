@@ -1,0 +1,20 @@
+{
+  "clean_apply": true,
+  "repeat_apply_preserves_records": true,
+  "migration_count": 12,
+  "versions": [
+    "0001_initial_schema.sql",
+    "0002_integrity_and_indexes.sql",
+    "0003_security_hardening.sql",
+    "0004_four_subject_curriculum_seed.sql",
+    "0005_roadmap_progress.sql",
+    "0006_learning_chats_notifications.sql",
+    "0007_competition_schema.sql",
+    "0008_baseline_catalog.sql",
+    "0009_learning_integrity.sql",
+    "0010_collaboration.sql",
+    "0011_postgres_integrity.sql",
+    "0012_certificate_signatures.sql"
+  ],
+  "database": "pragyax_migration_21c804db"
+}

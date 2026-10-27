@@ -120,7 +120,7 @@ CREATE INDEX IF NOT EXISTS idx_user_roadmap_progress_subject
 -- ----------------------------------------------------------------------------
 -- PragyaX routes all learner roadmap requests through FastAPI (/api/roadmap/*).
 -- Direct HTTP access via Supabase anon / authenticated roles must be blocked.
-REVOKE ALL ON TABLE user_roadmap_progress FROM anon, authenticated;
+DO $$ DECLARE r TEXT; BEGIN FOREACH r IN ARRAY ARRAY['anon','authenticated'] LOOP IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname=r) THEN EXECUTE format('REVOKE ALL ON TABLE user_roadmap_progress FROM %I',r); END IF; END LOOP; END $$;
 
 -- ----------------------------------------------------------------------------
 -- 5. Defense-In-Depth Row-Level Security (RLS Default-Deny)

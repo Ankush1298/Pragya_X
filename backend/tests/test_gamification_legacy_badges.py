@@ -5,7 +5,7 @@ Unit tests for legacy badge compatibility in backend/app/services/gamification_s
 Pure-function tests: no database, no FastAPI app, no shared mutable state; each test
 builds its own inputs and passes in any order. The service is loaded from its file path
 (not `import backend.app...`) for the same reason as test_gamification_service.py:
-importing the app package fixes DATABASE_PATH before test_api_flow.py can redirect it.
+importing the app package fixes DATABASE_URL before test_api_flow.py can redirect it.
 """
 
 import importlib.util

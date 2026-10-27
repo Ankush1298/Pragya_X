@@ -4,6 +4,7 @@ Owned by: Ankush (Gamification & Competition Module Owner)
 Handles referral code distribution, entry validation, and tracking dashboard.
 """
 
+from ..config import settings
 from fastapi import APIRouter, Depends, HTTPException, status
 from ..services.auth_service import get_current_user
 from ..services.referral_service import ReferralService
@@ -18,7 +19,7 @@ def get_my_referral_code(user: dict = Depends(get_current_user)):
     code = ReferralService.get_or_generate_code(user["id"], user["name"])
     return {
         "referral_code": code,
-        "share_url": f"https://pragyax.org/register?ref={code}"
+        "share_url": f"{settings.PUBLIC_BASE_URL}/#/register?ref={code}"
     }
 
 

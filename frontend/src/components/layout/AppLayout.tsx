@@ -7,6 +7,7 @@ interface AppLayoutProps {
   readonly user: User;
   readonly active: string;
   readonly aiIsMock: boolean;
+  readonly unread?: number;
   readonly onLogout: () => void;
   readonly children: ReactNode;
 }
@@ -15,6 +16,7 @@ export function AppLayout({
   user,
   active,
   aiIsMock,
+  unread,
   onLogout,
   children,
 }: AppLayoutProps) {
@@ -56,6 +58,7 @@ export function AppLayout({
         user={user}
         activeRoute={active}
         aiIsMock={aiIsMock}
+        unread={unread}
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
         onLogout={onLogout}

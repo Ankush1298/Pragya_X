@@ -11,6 +11,7 @@ class RegisterRequest(BaseModel):
     name: str = Field(..., min_length=2, max_length=100, description="Full name of student")
     email: str = Field(..., min_length=5, max_length=255, description="Valid student email address")
     password: str = Field(..., min_length=6, max_length=128, description="Password (at least 6 characters)")
+    referral_code: Optional[str] = Field(None, max_length=64, description="Optional invite code from another student")
 
 
 class LoginRequest(BaseModel):
@@ -23,6 +24,7 @@ class UserProfileResponse(BaseModel):
     name: str
     email: str
     created_at: Optional[TimestampString] = None
+    is_admin: bool = False
 
 
 class AuthResponse(BaseModel):
@@ -30,3 +32,4 @@ class AuthResponse(BaseModel):
     token_type: str = "Bearer"
     user: UserProfileResponse
     demo_notice: str = "Demo authentication active. Token valid for local session."
+    referral_notice: Optional[str] = None

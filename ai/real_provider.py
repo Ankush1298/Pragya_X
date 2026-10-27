@@ -194,7 +194,8 @@ class RealAIProvider(BaseAIProvider):
         return contents
 
     def generate_chat_response(
-        self, prompt: str, subject: str = "Python Programming", history: List[Dict[str, str]] = None
+        self, prompt: str, subject: str = "Python Programming", history: List[Dict[str, str]] = None,
+        learner_context: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Generates educational, context-aware responses via Google Gemini.
@@ -215,6 +216,9 @@ class RealAIProvider(BaseAIProvider):
         try:
             contents = self._build_contents(prompt_clean, history)
             system_instruction = SYSTEM_INSTRUCTION_TEMPLATE.format(subject=display_subject)
+            if learner_context:
+                # Trusted server-built context only (no answer keys, no raw user text)
+                system_instruction += "\n\nLearner context:\n" + learner_context[:1500]
 
             config = types.GenerateContentConfig(
                 system_instruction=system_instruction,

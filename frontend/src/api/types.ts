@@ -7,6 +7,7 @@ export interface User {
   name: string;
   email: string;
   created_at?: string | null;
+  is_admin?: boolean;
 }
 
 export interface AuthResponse {
@@ -14,6 +15,7 @@ export interface AuthResponse {
   token_type: string;
   user: User;
   demo_notice: string;
+  referral_notice?: string | null;
 }
 
 export interface Health {

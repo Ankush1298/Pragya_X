@@ -7,7 +7,7 @@ rankings, winner announcements, and organizer dashboards.
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Optional
-from ..services.auth_service import get_current_user
+from ..services.auth_service import get_current_user, is_admin_user
 from ..services.hosted_competition_service import HostedCompetitionService
 from ..schemas.competitions import (
     OrganizationCreateRequest,
@@ -47,7 +47,7 @@ def create_competition(payload: CompetitionCreateRequest, user: dict = Depends(g
     Creates and schedules a hosted challenge.
     Enforces verified host status: College and Company challenges require admin verification.
     """
-    is_admin = (user.get("role") == "admin" or user.get("id") == "system_admin")
+    is_admin = is_admin_user(user)
     result = HostedCompetitionService.create_competition(
         user_id=user["id"],
         org_id=payload.org_id,
@@ -108,7 +108,7 @@ def get_competition_leaderboard(comp_id: str):
 @router.get("/{comp_id}/dashboard")
 def get_organizer_dashboard(comp_id: str, user: dict = Depends(get_current_user)):
     """Organizer result dashboard with analytics and participant standings."""
-    is_admin = (user.get("role") == "admin" or user.get("id") == "system_admin")
+    is_admin = is_admin_user(user)
     result = HostedCompetitionService.get_organizer_dashboard(comp_id, user_id=user["id"], is_admin=is_admin)
     if "error" in result:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=result["error"])
@@ -118,7 +118,7 @@ def get_organizer_dashboard(comp_id: str, user: dict = Depends(get_current_user)
 @router.post("/{comp_id}/announce-winners")
 def announce_winners(comp_id: str, user: dict = Depends(get_current_user)):
     """Announces winners and issues verified certificates to top performers."""
-    is_admin = (user.get("role") == "admin" or user.get("id") == "system_admin")
+    is_admin = is_admin_user(user)
     result = HostedCompetitionService.announce_winners_and_issue_certificates(comp_id, user_id=user["id"], is_admin=is_admin)
     if "error" in result:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result["error"])

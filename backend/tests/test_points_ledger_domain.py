@@ -12,7 +12,7 @@ import ast
 import builtins
 import dataclasses
 import importlib.util
-import sqlite3
+import psycopg
 import sys
 import types
 from pathlib import Path
@@ -292,7 +292,7 @@ def test_no_filesystem_or_database_side_effects(monkeypatch, tmp_path):
         raise AssertionError("pure ledger domain must not do I/O")
 
     monkeypatch.setattr(builtins, "open", forbidden)
-    monkeypatch.setattr(sqlite3, "connect", forbidden)
+    monkeypatch.setattr(psycopg, "connect", forbidden)
     monkeypatch.chdir(tmp_path)
     live_event()
     decide(challenge_decision())
@@ -311,5 +311,5 @@ def test_uses_only_the_standard_library_and_the_gamification_service():
         elif isinstance(node, ast.ImportFrom):
             (relative if node.level else absolute).add(node.module.split(".")[0])
     assert absolute <= set(sys.stdlib_module_names), absolute
-    assert not absolute & {"sqlite3", "os", "io", "socket", "http", "urllib", "subprocess", "random", "time", "datetime", "uuid"}
+    assert not absolute & {"psycopg", "os", "io", "socket", "http", "urllib", "subprocess", "random", "time", "datetime", "uuid"}
     assert relative == {"gamification_service"}

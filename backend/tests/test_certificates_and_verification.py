@@ -4,6 +4,7 @@ Validates certificate eligibility, issuance, cryptographic tamper-evident checks
 public verification endpoint, downloadable certificate view, and shareable achievement card data.
 """
 
+import pytest
 from fastapi.testclient import TestClient
 from backend.app.main import app
 from backend.app.database.connection import init_db
@@ -15,6 +16,16 @@ client = TestClient(app)
 
 def setup_module():
     init_db()
+
+
+@pytest.fixture(autouse=True)
+def certificate_users():
+    from backend.app.database.connection import get_db
+    with get_db() as conn:
+        cur=conn.cursor()
+        for uid in ['usr_cert_test_01','usr_tamper_test','usr_forger']:
+            cur.execute("INSERT INTO users(id,name,email,password_hash,salt) VALUES (?,?,?,?,?) ON CONFLICT DO NOTHING",
+                        (uid,uid,uid+'@pragyax.test','unused-test-hash','unused-test-salt'))
 
 
 def test_certificate_issuance_and_public_verification():

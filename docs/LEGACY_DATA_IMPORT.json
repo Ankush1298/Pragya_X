@@ -1,0 +1,177 @@
+{
+  "source_sha256": "dda0bc28b25a7efad7f5209b285b7113bd24f1db9e25c8f8d0450fed5dbb6416",
+  "destination": "isolated local pragyax_dev",
+  "tables": {
+    "users": {
+      "source": 33,
+      "inserted": 33,
+      "verified_by_primary_key": 33
+    },
+    "subjects": {
+      "source": 7,
+      "inserted": 0,
+      "verified_by_primary_key": 7
+    },
+    "assessment_questions": {
+      "source": 20,
+      "inserted": 0,
+      "verified_by_primary_key": 20
+    },
+    "daily_challenges": {
+      "source": 1,
+      "inserted": 0,
+      "verified_by_primary_key": 1
+    },
+    "user_preferences": {
+      "source": 0,
+      "inserted": 0,
+      "verified_by_primary_key": 0
+    },
+    "chat_messages": {
+      "source": 0,
+      "inserted": 0,
+      "verified_by_primary_key": 0
+    },
+    "assessment_attempts": {
+      "source": 13,
+      "inserted": 13,
+      "verified_by_primary_key": 13
+    },
+    "user_challenge_submissions": {
+      "source": 0,
+      "inserted": 0,
+      "verified_by_primary_key": 0
+    },
+    "user_badges": {
+      "source": 1,
+      "inserted": 1,
+      "verified_by_primary_key": 1
+    },
+    "active_sessions": {
+      "source": 64,
+      "inserted": 64,
+      "verified_by_primary_key": 64
+    },
+    "user_roadmap_progress": {
+      "source": 0,
+      "inserted": 0,
+      "verified_by_primary_key": 0
+    },
+    "learning_chats": {
+      "source": 15,
+      "inserted": 15,
+      "verified_by_primary_key": 15
+    },
+    "learning_chat_messages": {
+      "source": 6,
+      "inserted": 6,
+      "verified_by_primary_key": 6
+    },
+    "learning_chat_attempts": {
+      "source": 13,
+      "inserted": 13,
+      "verified_by_primary_key": 13
+    },
+    "learning_module_progress": {
+      "source": 9,
+      "inserted": 9,
+      "verified_by_primary_key": 9
+    },
+    "learning_practice_answers": {
+      "source": 42,
+      "inserted": 42,
+      "verified_by_primary_key": 42
+    },
+    "learning_project_progress": {
+      "source": 1,
+      "inserted": 1,
+      "verified_by_primary_key": 1
+    },
+    "notifications": {
+      "source": 13,
+      "inserted": 13,
+      "verified_by_primary_key": 13
+    },
+    "notification_prefs": {
+      "source": 2,
+      "inserted": 2,
+      "verified_by_primary_key": 2
+    },
+    "challenge_library": {
+      "source": 5,
+      "inserted": 0,
+      "verified_by_primary_key": 5
+    },
+    "organizations": {
+      "source": 5,
+      "inserted": 2,
+      "verified_by_primary_key": 5
+    },
+    "challenge_submissions": {
+      "source": 0,
+      "inserted": 0,
+      "verified_by_primary_key": 0
+    },
+    "user_streaks": {
+      "source": 0,
+      "inserted": 0,
+      "verified_by_primary_key": 0
+    },
+    "battle_invitations": {
+      "source": 3,
+      "inserted": 3,
+      "verified_by_primary_key": 3
+    },
+    "battles": {
+      "source": 1,
+      "inserted": 1,
+      "verified_by_primary_key": 1
+    },
+    "battle_stats": {
+      "source": 2,
+      "inserted": 2,
+      "verified_by_primary_key": 2
+    },
+    "hosted_competitions": {
+      "source": 3,
+      "inserted": 3,
+      "verified_by_primary_key": 3
+    },
+    "competition_submissions": {
+      "source": 1,
+      "inserted": 1,
+      "verified_by_primary_key": 1
+    },
+    "xp_ledger": {
+      "source": 24,
+      "inserted": 24,
+      "verified_by_primary_key": 24
+    },
+    "user_referral_codes": {
+      "source": 3,
+      "inserted": 3,
+      "verified_by_primary_key": 3
+    },
+    "referrals": {
+      "source": 2,
+      "inserted": 2,
+      "verified_by_primary_key": 2
+    },
+    "certificates": {
+      "source": 1,
+      "inserted": 1,
+      "verified_by_primary_key": 1
+    },
+    "reward_catalog": {
+      "source": 4,
+      "inserted": 0,
+      "verified_by_primary_key": 4
+    },
+    "reward_redemptions": {
+      "source": 0,
+      "inserted": 0,
+      "verified_by_primary_key": 0
+    }
+  },
+  "all_source_rows_present": true
+}

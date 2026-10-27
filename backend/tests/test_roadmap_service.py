@@ -36,23 +36,9 @@ from backend.app.services.roadmap_service import (
     PYTHON_CATALOG
 )
 
-test_db_path = os.path.join(tempfile.mkdtemp(prefix="pragyax_roadmap_test_"), "test.db")
-settings.DATABASE_URL = None
-settings.DATABASE_PATH = test_db_path
 init_db()
 
 
-@pytest.fixture(autouse=True)
-def ensure_sqlite_test_env():
-    """Ensures hermetic SQLite isolation during test execution."""
-    orig_db_url = settings.DATABASE_URL
-    orig_db_path = settings.DATABASE_PATH
-    settings.DATABASE_URL = None
-    settings.DATABASE_PATH = test_db_path
-    init_db()
-    yield
-    settings.DATABASE_URL = orig_db_url
-    settings.DATABASE_PATH = orig_db_path
 
 
 @pytest.fixture

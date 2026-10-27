@@ -1,3 +1,5 @@
+> Historical design/test record. Database and release claims here are superseded by POSTGRESQL_ONLY_VERIFICATION.md and FINAL_PRODUCT_AUDIT.md (27 October 2026).
+
 # PragyaX Gamification Repository Contract (Phase 2, Task 09)
 
 > **Owner:** Ankush · **Status (2026-10-27):** a reusable contract test suite exists at `backend/tests/gamification_contract/test_repository_contract.py`.

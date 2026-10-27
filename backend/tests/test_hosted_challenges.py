@@ -29,7 +29,16 @@ def setup_module():
     init_db()
 
 
-def test_organization_registration_and_verification_rules():
+def _inside_window(monkeypatch):
+    """Competition windows in these tests are 2026-11-01 10:00-14:00Z; pin 'now' inside it."""
+    from datetime import datetime, timezone
+    from backend.app.services import hosted_competition_service as hcs
+    monkeypatch.setattr(hcs, "_now", lambda: datetime(2026, 11, 1, 11, 0, tzinfo=timezone.utc))
+
+
+
+def test_organization_registration_and_verification_rules(monkeypatch):
+    _inside_window(monkeypatch)
     organizer = _register_user("Prof. Sharma", "prof_sharma@iitd.ac.in")
 
     # Register college organization (pending verification)

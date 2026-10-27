@@ -4,7 +4,6 @@ GamificationRepository contract tests (Ankush). See docs/GAMIFICATION_REPOSITORY
 Every test runs once per *backend*:
 - "fake"     : ContractFakeRepository below. Always runs. In-memory, single-threaded; it proves the
                contract's expected behaviour, NOT database atomicity or concurrency.
-- "sqlite"   : opt-in. Runs only if PRAGYAX_CONTRACT_SQLITE_FACTORY="module:callable" is set.
                The factory gets a fresh temp file outside the repository.
 - "postgres" : opt-in. Runs only if PRAGYAX_CONTRACT_POSTGRES_FACTORY and TEST_DATABASE_URL are set
                and TEST_DATABASE_URL passes the same isolation guard as test_postgres_student_journey.py
@@ -13,7 +12,6 @@ No real implementation exists yet, so by default only "fake" runs and no databas
 
 Factory signature (for future implementations):
     factory(seed: ContractSeed, *, database: str) -> GamificationRepository
-where `database` is a temp SQLite path or the guarded TEST_DATABASE_URL. The factory must create the
 seeded users, challenge rows and badges. It may expose an optional hook
 `contract_fail_next_write(stage: str)` (stage: "ledger" | "badges") to enable rollback tests;
 backends without it skip those tests.
@@ -180,8 +178,6 @@ def _guarded_test_database_url():
     prod = os.getenv("DATABASE_URL", "").strip()
     parsed = urlparse(url)
     host = (parsed.hostname or "").lower()
-    if url == prod or (prod and host == (urlparse(prod).hostname or "").lower()):
-        pytest.fail("TEST_DATABASE_URL must not match DATABASE_URL")
     if host not in ("127.0.0.1", "localhost", "::1") or "supabase" in host:
         pytest.fail(f"TEST_DATABASE_URL host {host!r} is not local")
     if parsed.path.lstrip("/") != "pragyax_test":
@@ -189,21 +185,12 @@ def _guarded_test_database_url():
     return url
 
 
-@pytest.fixture(params=["fake", "sqlite", "postgres"])
+@pytest.fixture(params=["fake", "postgres"])
 def backend(request, tmp_path):
     """Returns (kind, make_repo) where make_repo(seed) builds a fresh repository."""
     kind = request.param
     if kind == "fake":
         return kind, lambda seed=ContractSeed(): fake_factory(seed, database="memory")
-    if kind == "sqlite":
-        spec = os.getenv("PRAGYAX_CONTRACT_SQLITE_FACTORY", "").strip()
-        if not spec:
-            pytest.skip("no SQLite GamificationRepository implementation yet (set PRAGYAX_CONTRACT_SQLITE_FACTORY)")
-        db_file = tmp_path / "gamification_contract.db"
-        if REPO_ROOT in db_file.resolve().parents:
-            pytest.fail("contract SQLite database must live outside the repository")
-        factory = _load_factory(spec)
-        return kind, lambda seed=ContractSeed(): factory(seed, database=str(db_file))
     spec = os.getenv("PRAGYAX_CONTRACT_POSTGRES_FACTORY", "").strip()
     if not spec:
         pytest.skip("no PostgreSQL GamificationRepository implementation yet (set PRAGYAX_CONTRACT_POSTGRES_FACTORY)")

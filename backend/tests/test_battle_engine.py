@@ -12,7 +12,7 @@ import dataclasses
 import importlib.util
 import random
 import socket
-import sqlite3
+import psycopg
 import sys
 import types
 from pathlib import Path
@@ -360,7 +360,7 @@ def test_no_database_filesystem_clock_network_or_random_use(monkeypatch):
         raise AssertionError("battle engine must be pure")
 
     monkeypatch.setattr(builtins, "open", forbidden)
-    monkeypatch.setattr(sqlite3, "connect", forbidden)
+    monkeypatch.setattr(psycopg, "connect", forbidden)
     monkeypatch.setattr(socket, "socket", forbidden)
     done = finish(ALL_RIGHT, TWO_RIGHT)
     be.battle_view(done, ASHA.user_id)
@@ -380,7 +380,7 @@ def test_source_imports_only_stdlib_and_owned_modules():
         elif isinstance(node, ast.Attribute):
             attributes.add(node.attr)
     assert absolute <= set(sys.stdlib_module_names), absolute
-    assert not absolute & {"sqlite3", "os", "io", "socket", "http", "urllib", "random", "secrets",
+    assert not absolute & {"psycopg", "os", "io", "socket", "http", "urllib", "random", "secrets",
                            "time", "datetime", "uuid", "asyncio", "threading"}
     assert relative == {"gamification_service", "leaderboard_engine"}
     assert not attributes & {"now", "today", "utcnow", "monotonic", "execute", "connect"}

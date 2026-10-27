@@ -44,7 +44,7 @@ function errorMessage(body: unknown, status: number): string {
   return `Request failed (${status})`;
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = tokenStore.get();
   let res: Response;
   try {
@@ -57,7 +57,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       },
     });
   } catch {
-    throw new ApiError(0, "Cannot reach the PragyaX backend. Is it running on port 8000?");
+    throw new ApiError(0, "Cannot reach PragyaX. Please check your connection and try again.");
   }
   const body = await res.json().catch(() => null);
   if (!res.ok) {
@@ -67,14 +67,19 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return body as T;
 }
 
-const post = <T>(path: string, data?: unknown) =>
+export const post = <T>(path: string, data?: unknown) =>
   request<T>(path, { method: "POST", body: data === undefined ? undefined : JSON.stringify(data) });
+export const put = <T>(path: string, data?: unknown) =>
+  request<T>(path, { method: "PUT", body: data === undefined ? undefined : JSON.stringify(data) });
+export const patch = <T>(path: string, data?: unknown) =>
+  request<T>(path, { method: "PATCH", body: data === undefined ? undefined : JSON.stringify(data) });
+export const get = <T>(path: string) => request<T>(path);
 
 export const api = {
   health: () => request<Health>("/health"),
 
-  register: (name: string, email: string, password: string) =>
-    post<AuthResponse>("/auth/register", { name, email, password }),
+  register: (name: string, email: string, password: string, referral_code?: string) =>
+    post<AuthResponse>("/auth/register", { name, email, password, referral_code }),
   login: (email: string, password: string) => post<AuthResponse>("/auth/login", { email, password }),
   me: () => request<User>("/auth/me"),
   logout: () => post<{ message: string }>("/auth/logout"),
@@ -94,7 +99,7 @@ export const api = {
 
   dashboard: () => request<Dashboard>("/dashboard"),
 
-  dailyChallenge: () => request<DailyChallenge>("/challenges/daily"),
+  dailyChallenge: () => request<DailyChallenge>(`/challenges/daily?date_str=${new Date().toISOString().slice(0,10)}`),
   submitChallenge: (challenge_id: string, selected_option: Option) =>
     post<ChallengeResult>("/challenges/submit", { challenge_id, selected_option }),
 };

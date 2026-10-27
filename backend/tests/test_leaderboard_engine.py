@@ -12,7 +12,7 @@ import dataclasses
 import importlib.util
 import random
 import socket
-import sqlite3
+import psycopg
 import sys
 import types
 from pathlib import Path
@@ -320,7 +320,7 @@ def test_no_filesystem_network_database_clock_or_random_use(monkeypatch):
         raise AssertionError("leaderboard engine must be pure")
 
     monkeypatch.setattr(builtins, "open", forbidden)
-    monkeypatch.setattr(sqlite3, "connect", forbidden)
+    monkeypatch.setattr(psycopg, "connect", forbidden)
     monkeypatch.setattr(socket, "socket", forbidden)
     college = lb.LeaderboardScope("college", "clg_iitd")
     board = lb.build_leaderboard(college, ten_members(), lb.ScopeMembership(college, {"usr_01", "usr_02"}))
@@ -341,6 +341,6 @@ def test_source_imports_only_stdlib_and_owned_modules():
         elif isinstance(node, ast.Attribute):
             attributes.add(node.attr)
     assert absolute <= set(sys.stdlib_module_names), absolute
-    assert not absolute & {"sqlite3", "os", "io", "socket", "http", "urllib", "random", "secrets", "time", "datetime", "uuid"}
+    assert not absolute & {"psycopg", "os", "io", "socket", "http", "urllib", "random", "secrets", "time", "datetime", "uuid"}
     assert relative == {"gamification_service", "points_ledger_domain"}
     assert not attributes & {"now", "today", "utcnow", "execute", "connect"}

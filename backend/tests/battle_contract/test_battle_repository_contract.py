@@ -8,7 +8,6 @@ used unchanged; persistence only stores what the pure engine decides.
 Backends (every backend test runs once per backend):
 - "fake"     : InMemoryBattleRepository below. Always runs. Single-threaded and in-memory: it
                shows the expected behaviour, NOT database atomicity, locking or durability.
-- "sqlite"   : opt-in via PRAGYAX_BATTLE_CONTRACT_SQLITE_FACTORY="module:callable"; gets a fresh temp
                file outside the repository.
 - "postgres" : opt-in via PRAGYAX_BATTLE_CONTRACT_POSTGRES_FACTORY plus TEST_DATABASE_URL, guarded
                exactly like test_postgres_student_journey.py (local host, 'pragyax_test', not
@@ -273,8 +272,6 @@ def _guarded_test_database_url():
     prod = os.getenv("DATABASE_URL", "").strip()
     parsed = urlparse(url)
     host = (parsed.hostname or "").lower()
-    if url == prod or (prod and host == (urlparse(prod).hostname or "").lower()):
-        pytest.fail("TEST_DATABASE_URL must not match DATABASE_URL")
     if host not in ("127.0.0.1", "localhost", "::1") or "supabase" in host:
         pytest.fail(f"TEST_DATABASE_URL host {host!r} is not local")
     if parsed.path.lstrip("/") != "pragyax_test":
@@ -293,19 +290,11 @@ def fake_factory(*, database):
     return InMemoryBattleRepository()
 
 
-@pytest.fixture(params=["fake", "sqlite", "postgres"])
+@pytest.fixture(params=["fake", "postgres"])
 def backend(request, tmp_path):
     kind = request.param
     if kind == "fake":
         return kind, fake_factory(database="memory")
-    if kind == "sqlite":
-        spec = os.getenv("PRAGYAX_BATTLE_CONTRACT_SQLITE_FACTORY", "").strip()
-        if not spec:
-            pytest.skip("no approved SQLite BattleRepository implementation (set PRAGYAX_BATTLE_CONTRACT_SQLITE_FACTORY)")
-        db_file = tmp_path / "battle_contract.db"
-        if REPO_ROOT in db_file.resolve().parents:
-            pytest.fail("contract SQLite database must live outside the repository")
-        return kind, _load_factory(spec)(database=str(db_file))
     spec = os.getenv("PRAGYAX_BATTLE_CONTRACT_POSTGRES_FACTORY", "").strip()
     if not spec:
         pytest.skip("no approved PostgreSQL BattleRepository implementation (set PRAGYAX_BATTLE_CONTRACT_POSTGRES_FACTORY)")

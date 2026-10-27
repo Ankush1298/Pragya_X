@@ -1,13 +1,14 @@
 import { GraduationCap, LogOut } from "lucide-react";
 import type { User } from "../../types/api";
 import type { RoutePath } from "../../types/routes";
-import { NAVIGATION_ITEMS } from "../../routes/navigation";
+import { NAV_SECTIONS, NAVIGATION_ITEMS } from "../../routes/navigation";
 import { Badge } from "../ui/Badge";
 
 interface SidebarProps {
   readonly user: User;
   readonly activeRoute: RoutePath | string;
   readonly aiIsMock: boolean;
+  readonly unread?: number;
   readonly isOpen: boolean;
   readonly onClose: () => void;
   readonly onLogout: () => void;
@@ -17,16 +18,14 @@ export function Sidebar({
   user,
   activeRoute,
   aiIsMock,
+  unread = 0,
   isOpen,
   onClose,
   onLogout,
 }: SidebarProps) {
-  const current = activeRoute === "result" ? "results" : activeRoute;
+  const current = activeRoute === "result" ? "results" : activeRoute === "module" ? "learn" : activeRoute;
 
-  // Group navigation items by category
-  const coreItems = NAVIGATION_ITEMS.filter((item) => item.category === "core");
-  const practiceItems = NAVIGATION_ITEMS.filter((item) => item.category === "practice");
-  const recordItems = NAVIGATION_ITEMS.filter((item) => item.category === "records");
+  const visible = NAVIGATION_ITEMS.filter((item) => item.category !== "admin" || user.is_admin);
 
   return (
     <aside
@@ -41,47 +40,30 @@ export function Sidebar({
       </div>
 
       <nav aria-label="Main Navigation" style={{ display: "flex", flexDirection: "column" }}>
-        <span className="nav-section-title">Core Learning</span>
-        {coreItems.map(({ path, label, icon: Icon }) => (
-          <a
-            key={path}
-            href={`#/${path}`}
-            className={`nav-link ${current === path ? "active" : ""}`}
-            aria-current={current === path ? "page" : undefined}
-            onClick={onClose}
-          >
-            <Icon size={18} aria-hidden />
-            <span>{label}</span>
-          </a>
-        ))}
-
-        <span className="nav-section-title">Practical Mastery</span>
-        {practiceItems.map(({ path, label, icon: Icon }) => (
-          <a
-            key={path}
-            href={`#/${path}`}
-            className={`nav-link ${current === path ? "active" : ""}`}
-            aria-current={current === path ? "page" : undefined}
-            onClick={onClose}
-          >
-            <Icon size={18} aria-hidden />
-            <span>{label}</span>
-          </a>
-        ))}
-
-        <span className="nav-section-title">Analytics & History</span>
-        {recordItems.map(({ path, label, icon: Icon }) => (
-          <a
-            key={path}
-            href={`#/${path}`}
-            className={`nav-link ${current === path ? "active" : ""}`}
-            aria-current={current === path ? "page" : undefined}
-            onClick={onClose}
-          >
-            <Icon size={18} aria-hidden />
-            <span>{label}</span>
-          </a>
-        ))}
+        {NAV_SECTIONS.map((section) => {
+          const items = visible.filter((i) => i.category === section.key);
+          if (!items.length) return null;
+          return (
+            <div key={section.key} className="nav-group">
+              <span className="nav-section-title">{section.title}</span>
+              {items.map(({ path, label, icon: Icon }) => (
+                <a
+                  key={path}
+                  href={`#/${path}`}
+                  className={`nav-link ${current === path ? "active" : ""}`}
+                  aria-current={current === path ? "page" : undefined}
+                  onClick={onClose}
+                >
+                  <Icon size={18} aria-hidden />
+                  <span>{label}</span>
+                  {path === "notifications" && unread > 0 && (
+                    <span className="nav-count" aria-label={`${unread} unread`}>{unread}</span>
+                  )}
+                </a>
+              ))}
+            </div>
+          );
+        })}
       </nav>
 
       <div className="sidebar-foot">

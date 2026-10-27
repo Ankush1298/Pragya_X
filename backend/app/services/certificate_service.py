@@ -8,12 +8,16 @@ and shareable social preview achievement cards.
 import hashlib
 import json
 from datetime import datetime, timezone
+import html as _html
+from ..config import settings
 from typing import List, Dict, Any, Optional
 from ..database.competition_repository import CompetitionRepository
+from ..database.connection import atomic_write
 
 
 class CertificateService:
     @staticmethod
+    @atomic_write
     def issue_certificate(
         user_id: str,
         user_name: str,
@@ -69,15 +73,8 @@ class CertificateService:
         import hmac
         from ..config import settings
 
-        raw_payload = f"{cert['verification_id']}:{cert['user_id']}:{cert['cert_type']}:{cert['title']}".encode("utf-8")
-        expected_hmac = hmac.new(settings.SECRET_KEY.encode("utf-8"), raw_payload, hashlib.sha256).hexdigest()
-
-        # Check authenticated HMAC-SHA256 or fallback legacy checksum
-        is_valid_signature = hmac.compare_digest(cert["verification_hash"], expected_hmac)
-        if not is_valid_signature:
-            legacy_sig = f"{cert['verification_id']}:{cert['user_id']}:{cert['cert_type']}:{cert['title']}:PragyaXVerified"
-            legacy_hash = hashlib.sha256(legacy_sig.encode()).hexdigest()
-            is_valid_signature = hmac.compare_digest(cert["verification_hash"], legacy_hash)
+        from .certificate_signing import signature
+        is_valid_signature = hmac.compare_digest(cert["verification_hash"], signature(cert))
 
         if not is_valid_signature:
             return {
@@ -94,7 +91,7 @@ class CertificateService:
             "description": cert["description"],
             "metadata": cert["metadata"],
             "issued_at": cert["issued_at"],
-            "issuer": "PragyaX Educational Foundation",
+            "issuer": "PragyaX",
             "verification_hash": cert["verification_hash"]
         }
 
@@ -111,14 +108,15 @@ class CertificateService:
         verif = CertificateService.verify_certificate(verification_id)
         if not verif["is_valid"]:
             return {"error": verif.get("error")}
+        base = settings.PUBLIC_BASE_URL
 
         return {
-            "title": f"Verified PragyaX Certificate — {verif['title']}",
+            "title": f"PragyaX Challenge Achievement — {verif['title']}",
             "recipient": verif["recipient_name"],
-            "verification_url": f"https://pragyax.org/verify/{verif['verification_id']}",
+            "verification_url": f"{base}/#/verify/{verif['verification_id']}",
             "badge_icon": "trophy" if "WINNER" in verif["cert_type"] else "award",
             "accent_color": "#4F46E5",
-            "share_text": f"Proud to have earned the '{verif['title']}' certificate on PragyaX! Verify here: https://pragyax.org/verify/{verif['verification_id']}",
+            "share_text": f"Proud to have earned the '{verif['title']}' achievement on PragyaX! Verify here: {base}/#/verify/{verif['verification_id']}",
             "certificate": verif
         }
 
@@ -132,11 +130,12 @@ class CertificateService:
         if not verif["is_valid"]:
             return {"error": verif.get("error")}
 
+        esc = lambda v: _html.escape(str(v or ""))
         html = f"""<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
-<title>PragyaX Certificate - {verif['verification_id']}</title>
+<title>PragyaX Achievement - {esc(verif['verification_id'])}</title>
 <style>
   body {{ font-family: 'Helvetica Neue', Arial, sans-serif; background: #f3f4f6; margin: 0; padding: 40px; display: flex; justify-content: center; }}
   .cert-container {{ background: #fff; width: 800px; padding: 50px; border: 12px solid #4F46E5; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; border-radius: 8px; position: relative; }}
@@ -152,17 +151,17 @@ class CertificateService:
 </head>
 <body>
 <div class="cert-container">
-  <div class="header">PragyaX Educational Foundation</div>
-  <div class="subtitle">Certificate of Verified Accomplishment</div>
+  <div class="header">PragyaX</div>
+  <div class="subtitle">PragyaX Challenge Achievement</div>
   <div class="presents">This certifies that</div>
-  <div class="name">{verif['recipient_name']}</div>
-  <div class="badge">{verif['cert_type']}</div>
-  <div class="title-tag">{verif['title']}</div>
-  <div class="desc">{verif['description']}</div>
+  <div class="name">{esc(verif['recipient_name'])}</div>
+  <div class="badge">{esc(verif['cert_type'])}</div>
+  <div class="title-tag">{esc(verif['title'])}</div>
+  <div class="desc">{esc(verif['description'])}</div>
   <div class="footer">
-    <div>Verification ID: <strong>{verif['verification_id']}</strong></div>
+    <div>Verification ID: <strong>{esc(verif['verification_id'])}</strong></div>
     <div>Issued: {verif['issued_at'][:10] if verif.get('issued_at') else '2026'}</div>
-    <div>Verified by PragyaX Engine</div>
+    <div>Platform achievement record - not an accredited qualification</div>
   </div>
 </div>
 </body>

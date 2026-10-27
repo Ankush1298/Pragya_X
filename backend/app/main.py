@@ -22,13 +22,16 @@ from .routers import (
     referrals_router,
     certificates_router,
     gamification_router,
-    admin_competitions_router
+    admin_competitions_router,
+    learning_router,
+    notifications_router,
 )
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize database (PostgreSQL connection pool or SQLite) on startup
+    # Initialize database (PostgreSQL connection pool) on startup
+    settings.validate_production()
     init_db()
     try:
         yield
@@ -54,6 +57,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from .routers.teams import router as teams_router
+app.include_router(teams_router, prefix=settings.API_PREFIX)
+
 # Mount API Routers
 app.include_router(health_router, prefix=settings.API_PREFIX)
 app.include_router(auth_router, prefix=settings.API_PREFIX)
@@ -69,6 +75,8 @@ app.include_router(referrals_router, prefix=settings.API_PREFIX)
 app.include_router(certificates_router, prefix=settings.API_PREFIX)
 app.include_router(gamification_router, prefix=settings.API_PREFIX)
 app.include_router(admin_competitions_router, prefix=settings.API_PREFIX)
+app.include_router(learning_router, prefix=settings.API_PREFIX)
+app.include_router(notifications_router, prefix=settings.API_PREFIX)
 
 
 @app.get("/")

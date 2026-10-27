@@ -1,3 +1,5 @@
+> Historical design/test record. Database and release claims here are superseded by POSTGRESQL_ONLY_VERIFICATION.md and FINAL_PRODUCT_AUDIT.md (27 October 2026).
+
 # PragyaX Battle Repository Contract (Phase 2, Task 12)
 
 > **Owner:** Ankush · **Status (2026-10-27):** a **provisional** `BattleRepository` protocol and its contract tests exist in `backend/tests/battle_contract/test_battle_repository_contract.py`.

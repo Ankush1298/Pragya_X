@@ -15,7 +15,7 @@ import builtins
 import importlib.util
 import itertools
 import socket
-import sqlite3
+import psycopg
 import sys
 import types
 from pathlib import Path
@@ -346,7 +346,7 @@ def test_adapter_does_no_sql_network_clock_or_file_access(monkeypatch):
         raise AssertionError("adapter must not touch I/O directly")
 
     monkeypatch.setattr(builtins, "open", forbidden)
-    monkeypatch.setattr(sqlite3, "connect", forbidden)
+    monkeypatch.setattr(psycopg, "connect", forbidden)
     monkeypatch.setattr(socket, "socket", forbidden)
     adapter.submit_daily_challenge(ALICE, "chal_today_py", "B")
     adapter.submit_daily_challenge(BOB, "chal_today_py", "A")
@@ -365,7 +365,7 @@ def test_adapter_source_imports_only_stdlib_and_owned_domain_modules():
         elif isinstance(node, ast.Attribute):
             attributes.add(node.attr)
     assert absolute <= set(sys.stdlib_module_names), absolute
-    assert not absolute & {"sqlite3", "os", "io", "socket", "http", "urllib", "random", "secrets", "time", "datetime", "uuid", "threading"}
+    assert not absolute & {"psycopg", "os", "io", "socket", "http", "urllib", "random", "secrets", "time", "datetime", "uuid", "threading"}
     assert relative == {"gamification_service", "points_ledger_domain"}
     assert not attributes & {"now", "today", "utcnow", "execute", "connect"}
 

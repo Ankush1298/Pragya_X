@@ -1,3 +1,5 @@
+> Historical design/test record. Database and release claims here are superseded by POSTGRESQL_ONLY_VERIFICATION.md and FINAL_PRODUCT_AUDIT.md (27 October 2026).
+
 # PragyaX Gamification Design (Phase 2 foundation)
 
 > **Owner:** Ankush · **Status (2026-10-27):** the pure domain service exists and is unit-tested. It is **not wired** into any router, repository or database table.

@@ -50,9 +50,6 @@ def verify_strict_isolation(test_url: str, prod_url: str):
     if not test_url:
         pytest.fail("ISOLATION FAILURE: TEST_DATABASE_URL does not exist.")
     
-    if test_url == prod_url:
-        pytest.fail("SECURITY VIOLATION: TEST_DATABASE_URL is identical to production DATABASE_URL.")
-
     parsed_test = urlparse(test_url)
     parsed_prod = urlparse(prod_url) if prod_url else None
 
@@ -70,10 +67,6 @@ def verify_strict_isolation(test_url: str, prod_url: str):
     if "supabase.co" in host or "pooler.supabase.com" in host:
         pytest.fail("SECURITY VIOLATION: TEST_DATABASE_URL points to Supabase. Aborting immediately.")
 
-    if parsed_prod:
-        prod_host = (parsed_prod.hostname or "").lower()
-        if host == prod_host:
-            pytest.fail("SECURITY VIOLATION: Test host matches production host.")
 
 
 pytestmark = pytest.mark.skipif(

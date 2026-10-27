@@ -14,7 +14,7 @@ export default function DashboardPage() {
   // Journey checklist is derived only from stored records.
   const journey = [
     { label: "Create account", done: true },
-    { label: "Ask the learning chat", done: m.chat_questions_asked > 0, path: "chat" },
+    { label: "Ask the learning chat", done: m.chat_questions_asked > 0, path: "learn" },
     { label: "Choose a subject", done: data.has_selected_subject, path: "subjects" },
     { label: "Complete an assessment", done: hasAttempts, path: "assessment" },
     { label: "Solve the daily challenge", done: m.challenges_attempted > 0, path: "challenge" },
@@ -30,7 +30,7 @@ export default function DashboardPage() {
             {user.email} · Learning <strong>{subject.title}</strong>
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => navigate("assessment")}>
+        <button className="btn btn-primary" onClick={() => navigate("learn")}>
           <ClipboardCheck size={16} aria-hidden /> {hasAttempts ? "Retake assessment" : "Take assessment"}
         </button>
       </header>
@@ -95,7 +95,7 @@ export default function DashboardPage() {
               </li>
             ))}
           </ul>
-          <button className="btn btn-ghost" onClick={() => navigate("chat")}>
+          <button className="btn btn-ghost" onClick={() => navigate("learn")}>
             Study with Learning Chat <ArrowRight size={15} aria-hidden />
           </button>
         </section>

@@ -1,11 +1,13 @@
 """
-SQLite Battle Repository Implementation for Contract Compliance
-Implements the BattleRepository protocol on SQLite with full transaction isolation,
+PostgreSQL Battle Repository Implementation for Contract Compliance
+Implements the BattleRepository protocol on PostgreSQL with full transaction isolation,
 idempotency, and concurrent thread serialization.
 """
 
 import json
-import sqlite3
+import psycopg
+from psycopg import sql
+from .connection import PostgresConnectionWrapper
 import sys
 import threading
 from typing import Dict, Any, List, Optional, Tuple, Iterable
@@ -33,20 +35,21 @@ def _get_battle_module(mod_name: str):
 
 
 
-class SqliteBattleRepository:
-    def __init__(self, db_path: str):
+class PostgresBattleRepository:
+    def __init__(self, db_path: str, schema: str):
         self.db_path = db_path
+        self.schema = schema
         self._fail_stage = None
         self._lock = threading.RLock()
         self.result_writes = 0
 
-    def _get_connection(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.db_path, timeout=30.0)
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA journal_mode=WAL;")
-        conn.execute("PRAGMA busy_timeout=30000;")
-        conn.execute("PRAGMA foreign_keys=ON;")
-        return conn
+    def _get_connection(self):
+        from psycopg.rows import dict_row
+        conn = psycopg.connect(self.db_path, row_factory=dict_row)
+        conn.execute(sql.SQL("SET search_path TO {}").format(sql.Identifier(self.schema)))
+        # A transaction-level PostgreSQL lock protects independent repository instances.
+        conn.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", (self.schema,))
+        return PostgresConnectionWrapper(conn)
 
     def contract_fail_next_write(self, stage: str) -> None:
         self._fail_stage = stage
@@ -56,8 +59,8 @@ class SqliteBattleRepository:
             self._fail_stage = None
             raise RuntimeError(f"injected failure at {stage}")
 
-    def contract_reopen(self) -> "SqliteBattleRepository":
-        repo = SqliteBattleRepository(self.db_path)
+    def contract_reopen(self) -> "PostgresBattleRepository":
+        repo = PostgresBattleRepository(self.db_path, self.schema)
         repo.result_writes = self.result_writes
         return repo
 
@@ -371,12 +374,19 @@ class SqliteBattleRepository:
                 conn.close()
 
 
-def make_sqlite_battle_repository(*, database: str) -> SqliteBattleRepository:
-    """Factory creating battle tables schema on a fresh SQLite database file."""
-    conn = sqlite3.connect(database)
+def make_postgres_battle_repository(*, database: str) -> PostgresBattleRepository:
+    """Factory creating battle tables schema on a fresh PostgreSQL database file."""
+    from urllib.parse import urlparse
+    parsed = urlparse(database)
+    if parsed.hostname not in ('localhost','127.0.0.1','::1') or parsed.path != '/pragyax_test':
+        raise ValueError('Contract repositories require isolated local pragyax_test')
+    schema = "contract_" + __import__('uuid').uuid4().hex
+    with psycopg.connect(database) as admin:
+        admin.execute(sql.SQL("CREATE SCHEMA {}").format(sql.Identifier(schema)))
+    repo = PostgresBattleRepository(database, schema)
+    conn = repo._get_connection()
     try:
         cur = conn.cursor()
-        cur.execute("PRAGMA journal_mode=WAL;")
         cur.execute("""
             CREATE TABLE IF NOT EXISTS battles (
                 id TEXT PRIMARY KEY,
@@ -442,4 +452,4 @@ def make_sqlite_battle_repository(*, database: str) -> SqliteBattleRepository:
     finally:
         conn.close()
 
-    return SqliteBattleRepository(database)
+    return repo

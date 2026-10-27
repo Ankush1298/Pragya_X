@@ -1,3 +1,5 @@
+> Historical design/test record. Database and release claims here are superseded by POSTGRESQL_ONLY_VERIFICATION.md and FINAL_PRODUCT_AUDIT.md (27 October 2026).
+
 # PragyaX Full Test Audit, Bug Fixing & Skipped Test Recovery Report
 
 **Date:** 2026-10-27

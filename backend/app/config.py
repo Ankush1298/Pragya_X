@@ -70,7 +70,34 @@ class Settings:
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
     
     # Security
+    # Dev-only fallback. In production (ENVIRONMENT=production) a real SECRET_KEY is mandatory (see validate_production()).
     SECRET_KEY: str = os.getenv("SECRET_KEY", "pragyax-hackathon-2026-secret-salt-key")
+    INSECURE_DEV_SECRET: str = "pragyax-hackathon-2026-secret-salt-key"
+    # Public site URL used in share/verification links (no hard-coded domain).
+    PUBLIC_BASE_URL: str = os.getenv("PUBLIC_BASE_URL", "http://localhost:5173").rstrip("/")
+
+    @property
+    def ADMIN_EMAILS(self) -> List[str]:
+        """Server-side admin allow-list (comma-separated emails). Empty by default: nobody is admin."""
+        return [e.strip().lower() for e in os.getenv("ADMIN_EMAILS", "").split(",") if e.strip()]
+
+    @property
+    def is_production(self) -> bool:
+        return os.getenv("ENVIRONMENT", "development").strip().lower() == "production"
+
+    def validate_production(self) -> None:
+        """Fail fast with a clear message when required production settings are missing."""
+        if not self.is_production:
+            return
+        problems = []
+        if self.SECRET_KEY == self.INSECURE_DEV_SECRET or len(self.SECRET_KEY) < 32:
+            problems.append("SECRET_KEY must be set to a random string of at least 32 characters")
+        if not self.DATABASE_URL:
+            problems.append("DATABASE_URL must be set to PostgreSQL")
+        if any("localhost" in o or "127.0.0.1" in o for o in self.CORS_ORIGINS):
+            problems.append("CORS_ORIGINS must list only your real frontend origin(s), not localhost")
+        if problems:
+            raise RuntimeError("Invalid production configuration: " + "; ".join(problems))
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
     
     # Database Configuration
@@ -89,16 +116,8 @@ class Settings:
             os.environ.pop("DATABASE_URL", None)
 
     @property
-    def DATABASE_PATH(self) -> str:
-        return os.getenv("DATABASE_PATH") or os.path.join(ROOT_DIR, "pragyax.db")
-
-    @DATABASE_PATH.setter
-    def DATABASE_PATH(self, value: str) -> None:
-        os.environ["DATABASE_PATH"] = value
-
-    @property
     def is_postgres(self) -> bool:
-        return self.DATABASE_URL is not None
+        return True
 
     @property
     def sanitized_database_url(self) -> str:

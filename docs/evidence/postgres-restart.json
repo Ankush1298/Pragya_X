@@ -1,0 +1,18 @@
+{
+  "before": {
+    "users": 34,
+    "assessment_attempts": 14,
+    "learning_chats": 16,
+    "learning_module_progress": 10,
+    "xp_ledger": 26
+  },
+  "after": {
+    "users": 34,
+    "assessment_attempts": 14,
+    "learning_chats": 16,
+    "learning_module_progress": 10,
+    "xp_ledger": 26
+  },
+  "equal": true,
+  "data_directory": "/Users/ankush/Desktop/PragyaX-Latest/.local/postgres/data"
+}

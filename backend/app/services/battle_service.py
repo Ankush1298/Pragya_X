@@ -1,3 +1,4 @@
+from ..database.connection import atomic_write
 """
 1v1 Battle Service
 Owned by: Ankush (Gamification & Competition Module Owner)
@@ -8,6 +9,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from ..database.competition_repository import CompetitionRepository
+from .notification_service import notify
 from ..database.repository import Repository
 from ..database.connection import get_db
 from .battle_engine import (
@@ -56,9 +58,13 @@ class BattleService:
             recipient_name=recipient_name,
             subject_id=subject_id
         )
+        if isinstance(invitation, dict) and invitation.get("id"):
+            notify(recipient_id, "battle", "Battle invitation", f"{sender_name} challenged you to a 1v1 battle.",
+                   "/battles", f"battle_invite:{invitation['id']}")
         return {"invitation": invitation}
 
     @staticmethod
+    @atomic_write
     def respond_to_invitation(user_id: str, invitation_id: str, accept: bool) -> Dict[str, Any]:
         """
         Accepts or rejects an invitation.
@@ -114,10 +120,11 @@ class BattleService:
         return {
             "status": "ACCEPTED",
             "battle_id": battle_id,
-            "battle": battle
+            "battle": BattleService.get_battle_view(user_id, battle_id)
         }
 
     @staticmethod
+    @atomic_write
     def set_player_ready(user_id: str, battle_id: str) -> Dict[str, Any]:
         """
         Marks player ready. If both players are ready, starts the battle.
@@ -148,7 +155,7 @@ class BattleService:
             updates["started_at"] = datetime.now(timezone.utc).isoformat()
 
         updated_battle = CompetitionRepository.update_battle_state(battle_id, updates)
-        return {"battle": updated_battle}
+        return {"battle": BattleService.get_battle_view(user_id, battle_id)}
 
     @staticmethod
     def get_battle_view(user_id: str, battle_id: str) -> Dict[str, Any]:
@@ -245,6 +252,7 @@ class BattleService:
         }
 
     @staticmethod
+    @atomic_write
     def submit_battle_answers(user_id: str, battle_id: str, answers: Dict[str, str], time_taken_seconds: float = 0.0) -> Dict[str, Any]:
         """
         Submits participant's answer sheet.
@@ -266,6 +274,19 @@ class BattleService:
         existing_answers = battle["player_one_answers"] if is_p1 else battle["player_two_answers"]
         if existing_answers:
             return {"error": "You have already submitted answers for this battle."}
+
+        allowed_ids = {q["question_id"] for q in battle["questions"]}
+        if not answers or any(k not in allowed_ids or v.strip().upper() not in {"A","B","C","D"} for k,v in answers.items()):
+            return {"error": "Submit a non-empty answer sheet containing valid question IDs and options."}
+        started = battle.get("started_at")
+        if started:
+            start_dt = datetime.fromisoformat(started.replace("Z", "+00:00"))
+            if start_dt.tzinfo is None:
+                start_dt = start_dt.replace(tzinfo=timezone.utc)
+            elapsed = max(0, (datetime.now(timezone.utc) - start_dt).total_seconds())
+            if elapsed > 65:
+                return {"error": "Battle time limit expired. Start a rematch to try again."}
+            time_taken_seconds = elapsed
 
         # Normalize answers
         normalized_answers = {k: v.strip().upper() for k, v in answers.items()}
@@ -337,6 +358,10 @@ class BattleService:
         """Awards XP, badges, and checks certificate milestones on battle completion."""
         outcome = result.outcome
         winner_id = result.winner_user_id
+        for me, other in ((p1, p2), (p2, p1)):
+            verdict = ("tied" if outcome == BattleOutcome.TIE else "won" if winner_id == me.user_id else "lost")
+            notify(me.user_id, "battle", "Battle result", f"You {verdict} against {other.display_name}.",
+                   f"/battles/{battle_id}", f"battle_result:{battle_id}:{me.user_id}")
 
         if outcome == BattleOutcome.TIE:
             # Tie: 50 XP each
@@ -360,15 +385,17 @@ class BattleService:
                 cur = conn.cursor()
                 # First blood badge for 1st win
                 cur.execute("""
-                    INSERT OR IGNORE INTO user_badges (id, user_id, badge_key, title, description, icon)
-                    VALUES (?, ?, 'first_blood', 'First Blood: Duelist', 'Won your first 1v1 student battle', 'swords');
-                """, (f"bdg_fb_{winner_id[-4:]}", winner_id))
+                    INSERT INTO user_badges (id, user_id, badge_key, title, description, icon)
+                    VALUES (?, ?, 'first_blood', 'First Blood: Duelist', 'Won your first 1v1 student battle', 'swords')
+                    ON CONFLICT (user_id, badge_key) DO NOTHING;
+                """, (f"bdg_{uuid.uuid4().hex[:12]}", winner_id))
 
                 if w_stats.get("win_streak", 0) >= 3:
                     cur.execute("""
-                        INSERT OR IGNORE INTO user_badges (id, user_id, badge_key, title, description, icon)
-                        VALUES (?, ?, 'duel_master', 'Duel Master: 3-Streak', 'Won 3 consecutive 1v1 battles', 'shield');
-                    """, (f"bdg_dm_{winner_id[-4:]}", winner_id))
+                        INSERT INTO user_badges (id, user_id, badge_key, title, description, icon)
+                        VALUES (?, ?, 'duel_master', 'Duel Master: 3-Streak', 'Won 3 consecutive 1v1 battles', 'shield')
+                        ON CONFLICT (user_id, badge_key) DO NOTHING;
+                    """, (f"bdg_{uuid.uuid4().hex[:12]}", winner_id))
 
             # Issue 1v1 Battle Winner Certificate
             opponent_display = p2.display_name if winner_id == p1.user_id else p1.display_name
@@ -404,8 +431,25 @@ class BattleService:
 
     @staticmethod
     def get_user_battle_history(user_id: str, limit: int = 20) -> List[Dict[str, Any]]:
-        """Retrieves past battles for user."""
-        return CompetitionRepository.get_user_battles(user_id, limit=limit)
+        """Retrieves the user's battles as a SAFE summary: no question bank, answer keys or opponent answers."""
+        out = []
+        for b in CompetitionRepository.get_user_battles(user_id, limit=limit):
+            mine_is_p1 = b["player_one_id"] == user_id
+            result = b.get("result") or {}
+            out.append({
+                "id": b["id"],
+                "status": b["status"],
+                "subject_id": b.get("subject_id"),
+                "opponent_name": b["player_two_name"] if mine_is_p1 else b["player_one_name"],
+                "you_ready": bool(b["player_one_ready"] if mine_is_p1 else b["player_two_ready"]),
+                "opponent_ready": bool(b["player_two_ready"] if mine_is_p1 else b["player_one_ready"]),
+                "outcome": b.get("outcome"),
+                "you_won": bool(b.get("winner_id") and b["winner_id"] == user_id),
+                "scores": result.get("scores"),
+                "created_at": b.get("created_at"),
+                "completed_at": b.get("completed_at"),
+            })
+        return out
 
     @staticmethod
     def get_battle_leaderboard(limit: int = 25) -> List[Dict[str, Any]]:

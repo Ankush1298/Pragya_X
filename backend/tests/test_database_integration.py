@@ -3,7 +3,7 @@ Targeted Database Connection and Compatibility Test Suite
 Tests:
 1. PostgreSQL connection configuration validation & sanitization
 2. Database connection failure handling (strictly no silent fallback)
-3. SQLite fallback when DATABASE_URL is absent
+3. Missing PostgreSQL configuration fails clearly
 4. Repository SQL compatibility (ON CONFLICT, portable ordering, booleans)
 5. Connection pool cleanup
 6. Read-only SELECT 1 ping_db() check
@@ -24,20 +24,6 @@ from backend.app.database.connection import (
 from backend.app.database.repository import Repository
 
 
-@pytest.fixture(autouse=True)
-def ensure_sqlite_test_env():
-    """Ensure each test runs in a controlled environment."""
-    original_url = os.environ.get("DATABASE_URL")
-    test_db = os.path.join(tempfile.mkdtemp(prefix="pragya_db_test_"), "test.db")
-    settings.DATABASE_URL = None
-    settings.DATABASE_PATH = test_db
-    init_db()
-    yield
-    close_db_pool()
-    if original_url:
-        settings.DATABASE_URL = original_url
-    else:
-        settings.DATABASE_URL = None
 
 
 def test_postgres_url_validation_and_sanitization():
@@ -61,23 +47,22 @@ def test_postgres_url_validation_and_sanitization():
     assert "aws-0-ap-south-1.pooler.supabase.com:6543" in sanitized
 
 
-def test_sqlite_active_when_database_url_is_none():
-    settings.DATABASE_URL = None
-    assert settings.is_postgres is False
-    
-    ping = ping_db()
-    assert ping["status"] == "healthy"
-    assert ping["connected"] is True
-    assert "SQLite" in ping["engine"]
+def test_missing_database_url_fails(monkeypatch):
+    close_db_pool()
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    with pytest.raises(DatabaseConnectionError, match="DATABASE_URL"):
+        init_db()
+    assert ping_db()["connected"] is False
 
 
-def test_postgres_fail_fast_no_silent_sqlite_fallback():
+def test_postgres_fail_fast_without_fallback(monkeypatch):
     """
     CRITICAL REQUIREMENT:
     If DATABASE_URL is configured but unreachable, the system must FAIL FAST
-    with DatabaseConnectionError and NEVER silently switch to SQLite.
+    with DatabaseConnectionError and NEVER switch database engines.
     """
-    settings.DATABASE_URL = "postgresql://fake_user:fake_pass@127.0.0.1:59999/nonexistent?sslmode=disable"
+    close_db_pool()
+    monkeypatch.setattr(settings, "DATABASE_URL", "postgresql://fake_user:fake_pass@127.0.0.1:59999/nonexistent?sslmode=disable")
     assert settings.is_postgres is True
 
     with pytest.raises(DatabaseConnectionError):

@@ -38,7 +38,7 @@ export function levelClass(level: string): string {
 
 export const formatDate = (s?: string | null): string => {
   if (!s) return "";
-  // SQLite CURRENT_TIMESTAMP is UTC without a zone marker.
+  // Older API timestamps without an explicit offset represent UTC.
   const d = new Date(s.includes("T") || s.endsWith("Z") ? s : `${s.replace(" ", "T")}Z`);
   return isNaN(d.getTime()) ? s : d.toLocaleString(undefined, {
     dateStyle: "medium",

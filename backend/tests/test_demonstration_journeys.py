@@ -139,7 +139,7 @@ def test_journey_1_battle_to_certificate_and_leaderboard():
     # Step 9: Battle history & leaderboard updated
     history_a = client.get("/api/battles/my-battles", headers=student_a["headers"]).json()
     assert len(history_a) == 1
-    assert history_a[0]["winner_id"] == student_a["user"]["id"]
+    assert history_a[0]["you_won"] is True
 
     leaderboard = client.get("/api/battles/leaderboard/ranking").json()
     arjun_entry = next((e for e in leaderboard if e["user_id"] == student_a["user"]["id"]), None)
@@ -187,7 +187,12 @@ def test_journey_2_referral_to_milestone_and_reward():
     }, headers=new_student["headers"])
     assert assess_res.status_code == 200
 
-    # Step 5: Server verifies completion, marks referral successful, and awards rewards
+    # Step 5: assessment alone keeps the referral PENDING (rule: assessment AND first learning mission)
+    mid = client.get("/api/referrals/dashboard", headers=mentor["headers"]).json()
+    assert mid["pending_referrals"] == 1 and mid["successful_referrals"] == 0
+
+    from backend.tests.learning_helpers import complete_first_mission
+    complete_first_mission(client, new_student["headers"])
     mentor_dash_final = client.get("/api/referrals/dashboard", headers=mentor["headers"]).json()
     assert mentor_dash_final["pending_referrals"] == 0
     assert mentor_dash_final["successful_referrals"] == 1
@@ -307,7 +312,16 @@ def test_journey_d_challenges_flow():
     assert any(entry["user_id"] == challenger["user"]["id"] for entry in lb)
 
 
-def test_journey_e_hosted_competitions_flow():
+def _inside_window(monkeypatch, day=1, month=11):
+    """Pin the competition clock inside the test window (10:00-18:00Z on the given day)."""
+    from datetime import datetime, timezone
+    from backend.app.services import hosted_competition_service as hcs
+    monkeypatch.setattr(hcs, "_now", lambda: datetime(2026, month, day, 11, 0, tzinfo=timezone.utc))
+
+
+
+def test_journey_e_hosted_competitions_flow(monkeypatch):
+    _inside_window(monkeypatch, 10, 11)
     """
     JOURNEY E DEMONSTRATION (Hosted Competitions Lifecycle):
     Authorized organizer creates competition → student joins/submits →

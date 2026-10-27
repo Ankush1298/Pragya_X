@@ -1,6 +1,6 @@
 """
 Data Access Repository Pattern
-Abstracts persistence operations so SQLite can be swapped for Supabase PostgreSQL by Nagin.
+PostgreSQL persistence operations for PragyaX.
 Owned by: Nagin (Supabase Database Architecture) & Arsh (Backend)
 """
 
@@ -8,7 +8,7 @@ import json
 import uuid
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any, Optional
-from .connection import get_db
+from .connection import get_db, atomic_write
 from ..config import settings
 
 
@@ -320,7 +320,7 @@ class Repository:
             stats = dict(cursor.fetchone())
             cursor.execute("SELECT MAX(percentage) AS best FROM assessment_attempts WHERE user_id = ?;", (user_id,))
             best_percentage = cursor.fetchone()["best"]
-            cursor.execute("SELECT COUNT(*) AS n FROM chat_messages WHERE user_id = ? AND role = 'user';", (user_id,))
+            cursor.execute("SELECT (SELECT COUNT(*) FROM chat_messages WHERE user_id=? AND role='user') + (SELECT COUNT(*) FROM learning_chat_messages m JOIN learning_chats c ON c.id=m.chat_id WHERE c.user_id=? AND m.role='user') AS n", (user_id,user_id))
             questions_asked = cursor.fetchone()["n"]
             cursor.execute("SELECT COALESCE(SUM(points_awarded), 0) AS pts, COUNT(*) AS n FROM user_challenge_submissions WHERE user_id = ?;", (user_id,))
             challenge_row = cursor.fetchone()
@@ -358,7 +358,7 @@ class Repository:
                 "best_percentage": best_percentage or 0.0,
                 "chat_questions_asked": questions_asked,
                 "challenges_attempted": challenge_row["n"],
-                "total_points": challenge_row["pts"],
+                "total_points": __import__("backend.app.database.competition_repository", fromlist=["CompetitionRepository"]).CompetitionRepository.get_user_total_xp(user_id),
             },
             "recommended_next_topics": recommended_topics,
             "recommendations_source": recommendations_source,
@@ -395,6 +395,7 @@ class Repository:
             return chal
 
     @staticmethod
+    @atomic_write
     def submit_daily_challenge(user_id: str, challenge_id: str, selected_option: str) -> Dict[str, Any]:
         with get_db() as conn:
             cursor = conn.cursor()
@@ -430,6 +431,9 @@ class Repository:
                     ON CONFLICT (user_id, badge_key) DO NOTHING;
                 """, (f"bdg_{uuid.uuid4().hex[:8]}", user_id))
 
+            from .competition_repository import CompetitionRepository
+            CompetitionRepository.record_xp_event(user_id, f"legacy.challenge.{user_id}.{challenge_id}", points,
+                                                  "Daily challenge", "challenge", challenge_id)
             return {
                 "challenge_id": challenge_id,
                 "is_correct": is_correct,
@@ -466,7 +470,7 @@ class Repository:
             cursor.execute("""
                 SELECT module_id
                 FROM user_roadmap_progress
-                WHERE user_id = ? AND subject_id = ? AND status = 'completed'
+                WHERE user_id = ? AND subject_id = ? AND is_completed = TRUE
                 ORDER BY completed_at ASC;
             """, (user_id, subject_id))
             rows = cursor.fetchall()
@@ -483,7 +487,7 @@ class Repository:
             cursor = conn.cursor()
             # Check if record already exists
             cursor.execute("""
-                SELECT id, user_id, subject_id, module_id, status, completed_at
+                SELECT user_id || ':' || subject_id || ':' || module_id AS id, user_id, subject_id, module_id, CASE WHEN is_completed THEN 'completed' ELSE 'unlocked' END AS status, completed_at
                 FROM user_roadmap_progress
                 WHERE user_id = ? AND subject_id = ? AND module_id = ?;
             """, (user_id, subject_id, module_id))
@@ -494,14 +498,14 @@ class Repository:
             progress_id = f"prog_{uuid.uuid4().hex[:12]}"
             cursor.execute("""
                 INSERT INTO user_roadmap_progress (
-                    id, user_id, subject_id, module_id, status
+                    user_id, subject_id, module_id, is_completed, completed_at
                 )
-                VALUES (?, ?, ?, ?, 'completed')
+                VALUES (?, ?, ?, TRUE, CURRENT_TIMESTAMP)
                 ON CONFLICT (user_id, subject_id, module_id) DO NOTHING;
-            """, (progress_id, user_id, subject_id, module_id))
+            """, (user_id, subject_id, module_id))
 
             cursor.execute("""
-                SELECT id, user_id, subject_id, module_id, status, completed_at
+                SELECT user_id || ':' || subject_id || ':' || module_id AS id, user_id, subject_id, module_id, CASE WHEN is_completed THEN 'completed' ELSE 'unlocked' END AS status, completed_at
                 FROM user_roadmap_progress
                 WHERE user_id = ? AND subject_id = ? AND module_id = ?;
             """, (user_id, subject_id, module_id))

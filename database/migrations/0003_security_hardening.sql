@@ -53,23 +53,23 @@ END $$;
 -- direct client access via anon or authenticated roles MUST be revoked.
 
 -- 1. Revoke all privileges on student identity and credentials
-REVOKE ALL ON TABLE users FROM anon, authenticated;
-REVOKE ALL ON TABLE active_sessions FROM anon, authenticated;
+DO $$ DECLARE r TEXT; BEGIN FOREACH r IN ARRAY ARRAY['anon','authenticated'] LOOP IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname=r) THEN EXECUTE format('REVOKE ALL ON TABLE users FROM %I',r); END IF; END LOOP; END $$;
+DO $$ DECLARE r TEXT; BEGIN FOREACH r IN ARRAY ARRAY['anon','authenticated'] LOOP IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname=r) THEN EXECUTE format('REVOKE ALL ON TABLE active_sessions FROM %I',r); END IF; END LOOP; END $$;
 
 -- 2. Revoke all privileges on private student activity and evaluation records
-REVOKE ALL ON TABLE assessment_attempts FROM anon, authenticated;
-REVOKE ALL ON TABLE chat_messages FROM anon, authenticated;
-REVOKE ALL ON TABLE user_preferences FROM anon, authenticated;
-REVOKE ALL ON TABLE user_challenge_submissions FROM anon, authenticated;
-REVOKE ALL ON TABLE user_badges FROM anon, authenticated;
+DO $$ DECLARE r TEXT; BEGIN FOREACH r IN ARRAY ARRAY['anon','authenticated'] LOOP IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname=r) THEN EXECUTE format('REVOKE ALL ON TABLE assessment_attempts FROM %I',r); END IF; END LOOP; END $$;
+DO $$ DECLARE r TEXT; BEGIN FOREACH r IN ARRAY ARRAY['anon','authenticated'] LOOP IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname=r) THEN EXECUTE format('REVOKE ALL ON TABLE chat_messages FROM %I',r); END IF; END LOOP; END $$;
+DO $$ DECLARE r TEXT; BEGIN FOREACH r IN ARRAY ARRAY['anon','authenticated'] LOOP IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname=r) THEN EXECUTE format('REVOKE ALL ON TABLE user_preferences FROM %I',r); END IF; END LOOP; END $$;
+DO $$ DECLARE r TEXT; BEGIN FOREACH r IN ARRAY ARRAY['anon','authenticated'] LOOP IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname=r) THEN EXECUTE format('REVOKE ALL ON TABLE user_challenge_submissions FROM %I',r); END IF; END LOOP; END $$;
+DO $$ DECLARE r TEXT; BEGIN FOREACH r IN ARRAY ARRAY['anon','authenticated'] LOOP IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname=r) THEN EXECUTE format('REVOKE ALL ON TABLE user_badges FROM %I',r); END IF; END LOOP; END $$;
 
 -- 3. Revoke all privileges on curriculum questions (protects correct_option and explanations)
-REVOKE ALL ON TABLE assessment_questions FROM anon, authenticated;
+DO $$ DECLARE r TEXT; BEGIN FOREACH r IN ARRAY ARRAY['anon','authenticated'] LOOP IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname=r) THEN EXECUTE format('REVOKE ALL ON TABLE assessment_questions FROM %I',r); END IF; END LOOP; END $$;
 
 -- 4. Curriculum catalog and challenges:
 -- Revoke all write/modification permissions. Only the backend manages these records.
-REVOKE ALL ON TABLE subjects FROM anon, authenticated;
-REVOKE ALL ON TABLE daily_challenges FROM anon, authenticated;
+DO $$ DECLARE r TEXT; BEGIN FOREACH r IN ARRAY ARRAY['anon','authenticated'] LOOP IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname=r) THEN EXECUTE format('REVOKE ALL ON TABLE subjects FROM %I',r); END IF; END LOOP; END $$;
+DO $$ DECLARE r TEXT; BEGIN FOREACH r IN ARRAY ARRAY['anon','authenticated'] LOOP IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname=r) THEN EXECUTE format('REVOKE ALL ON TABLE daily_challenges FROM %I',r); END IF; END LOOP; END $$;
 
 
 -- ============================================================================

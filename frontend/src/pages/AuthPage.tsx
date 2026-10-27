@@ -30,6 +30,7 @@ export default function AuthPage({
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [referral,setReferral] = useState(() => new URLSearchParams(window.location.hash.split("?")[1] ?? window.location.search).get("ref") ?? "");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -64,7 +65,7 @@ export default function AuthPage({
     try {
       const res =
         mode === "register"
-          ? await api.register(name.trim(), email.trim(), password)
+          ? await api.register(name.trim(), email.trim(), password, referral.trim() || undefined)
           : await api.login(email.trim(), password);
       onAuth(res.user, res.token, mode === "register");
     } catch (err) {
@@ -215,7 +216,8 @@ export default function AuthPage({
 
               {error && <Alert variant="error" message={error} />}
 
-              <Button
+              {mode === "register" && <label className="field">Referral code (optional)<input value={referral} maxLength={64} onChange={e=>setReferral(e.target.value.toUpperCase())}/></label>}
+                  <Button
                 type="submit"
                 variant="primary"
                 block
@@ -282,7 +284,7 @@ export default function AuthPage({
             </div>
             <h3 className="philosophy-title">DISCOVER</h3>
             <p className="philosophy-desc">
-              Understand what you already know. Uncover your precise baseline and
+              Understand what you already know. Estimate your starting point and
               knowledge boundaries with rapid diagnostic challenges.
             </p>
           </article>
@@ -387,7 +389,7 @@ export default function AuthPage({
             </div>
             <h3>AI Learning Assistant</h3>
             <p>
-              Trained learning chat with safe Markdown code rendering, intelligent
+              Context-aware learning chat with safe Markdown code rendering, intelligent
               suggested follow-ups, and session persistence.
             </p>
           </div>
@@ -431,8 +433,8 @@ export default function AuthPage({
             </div>
             <h3>Offline Deterministic Mode</h3>
             <p>
-              Runs fully offline with file-backed SQLite persistence and deterministic
-              mock AI providers for zero setup friction.
+              Uses PostgreSQL persistence with an optional deterministic mock AI provider.
+              Live AI mentoring requires configured Gemini credentials.
             </p>
           </div>
         </div>

@@ -26,27 +26,11 @@ from backend.app.routers import chat as chat_router, assessments as assessments_
 SAMPLE_ANSWERS = {"q_py_1": "B", "q_py_2": "C", "q_py_3": "C", "q_py_4": "B", "q_py_5": "A"}
 
 
+
+
 @pytest.fixture(autouse=True)
-def isolated_sqlite_env(monkeypatch):
-    """Provisions a clean, disposable SQLite database in tempdir for each test."""
-    temp_dir = tempfile.mkdtemp(prefix="pragya_codex_integ_")
-    db_file = os.path.join(temp_dir, "test_integ.db")
-    
-    monkeypatch.setattr(settings, "DATABASE_URL", None)
-    monkeypatch.setattr(settings, "DATABASE_PATH", db_file)
-    monkeypatch.setenv("AI_PROVIDER", "mock")
-    
-    close_db_pool()
-    init_db()
-    
+def isolated_postgres_env(reset_postgres_data):
     yield
-    
-    close_db_pool()
-    if os.path.exists(db_file):
-        try:
-            os.remove(db_file)
-        except OSError:
-            pass
 
 
 @pytest.fixture

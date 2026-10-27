@@ -1,3 +1,4 @@
+from ..database.connection import atomic_write
 """
 Referral System Service
 Owned by: Ankush (Gamification & Competition Module Owner)
@@ -7,7 +8,14 @@ and reward qualification after genuine learning activities.
 
 from typing import List, Dict, Any, Optional
 from ..database.competition_repository import CompetitionRepository
+from ..config import settings
+from ..database.learning_repository import LearningRepository
 from ..database.repository import Repository
+
+REFERRER_XP = 150
+REFEREE_XP = 50
+QUALIFY_RULE = ("Qualifies when the invited student completes their first diagnostic assessment AND their first "
+                "learning module (practice passed). Rewards: %d XP for you, %d XP welcome bonus for them, granted once." % (REFERRER_XP, REFEREE_XP))
 
 
 class ReferralService:
@@ -17,6 +25,7 @@ class ReferralService:
         return CompetitionRepository.get_or_create_user_referral_code(user_id, user_name)
 
     @staticmethod
+    @atomic_write
     def apply_referral_code(referee_id: str, code: str) -> Dict[str, Any]:
         """
         Applies a referral code during registration or onboarding.
@@ -37,6 +46,9 @@ class ReferralService:
         if referrer_id == referee_id:
             return {"error": "Self-referral is not allowed. You cannot use your own referral code."}
 
+        if LearningRepository.user_has_completed_mission(referee_id):
+            return {"error": "Referral codes can only be applied before your first learning mission."}
+
         result = CompetitionRepository.record_pending_referral(
             referrer_id=referrer_id,
             referee_id=referee_id,
@@ -48,17 +60,21 @@ class ReferralService:
 
         return {
             "status": "PENDING",
-            "message": "Referral code applied! Rewards will be unlocked once you complete your first learning assessment or challenge.",
+            "message": "Referral code applied! " + QUALIFY_RULE,
             "referral": result
         }
 
     @staticmethod
+    @atomic_write
     def check_and_qualify_referral(referee_id: str, milestone_type: str) -> Optional[Dict[str, Any]]:
         """
         Called when a student completes a qualifying learning activity
         (e.g., completes first assessment with passing grade, or completes first daily challenge).
         Transitions referral from PENDING -> QUALIFIED and issues XP rewards server-side.
         """
+        # Product rule: BOTH the initial assessment and the first learning mission are required.
+        if not (LearningRepository.user_has_diagnostic(referee_id) and LearningRepository.user_has_completed_mission(referee_id)):
+            return None
         referral = CompetitionRepository.qualify_referral(referee_id, milestone_type)
         if not referral:
             return None  # No pending referral found for this user
@@ -70,7 +86,7 @@ class ReferralService:
         CompetitionRepository.record_xp_event(
             user_id=referrer_id,
             event_key=f"referral.referrer.{ref_id}",
-            points=referral.get("referrer_reward_points", 150),
+            points=REFERRER_XP,
             reason=f"Invited friend completed {milestone_type}",
             source_type="referral",
             source_id=ref_id
@@ -80,19 +96,20 @@ class ReferralService:
         CompetitionRepository.record_xp_event(
             user_id=referee_id,
             event_key=f"referral.referee.{ref_id}",
-            points=referral.get("referee_reward_points", 50),
+            points=REFEREE_XP,
             reason=f"Welcome bonus for completing {milestone_type} via referral",
             source_type="referral",
             source_id=ref_id
         )
 
+        CompetitionRepository.mark_referral_rewarded(ref_id)
         return {
             "referral_id": ref_id,
-            "status": "QUALIFIED",
+            "status": "REWARDED",
             "referrer_id": referrer_id,
             "referee_id": referee_id,
-            "referrer_points": 150,
-            "referee_points": 50,
+            "referrer_points": REFERRER_XP,
+            "referee_points": REFEREE_XP,
             "milestone_type": milestone_type
         }
 
@@ -107,10 +124,13 @@ class ReferralService:
 
         return {
             "referral_code": code,
-            "share_url": f"https://pragyax.org/register?ref={code}",
+            "share_url": f"{settings.PUBLIC_BASE_URL}/#/register?ref={code}",
             "total_invited": summary["total_invited"],
             "pending_referrals": summary["pending_referrals"],
             "successful_referrals": summary["successful_referrals"],
             "xp_earned_from_referrals": summary["xp_earned_from_referrals"],
-            "referral_history": summary["referral_history"]
+            "referral_history": summary["referral_history"],
+            "reward_rule": QUALIFY_RULE,
+            "referrer_xp": REFERRER_XP,
+            "referee_xp": REFEREE_XP,
         }

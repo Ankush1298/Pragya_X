@@ -16,6 +16,8 @@ from .referrals import router as referrals_router
 from .certificates import router as certificates_router
 from .gamification import router as gamification_router
 from .admin_competitions import router as admin_competitions_router
+from .learning import router as learning_router
+from .notifications import router as notifications_router
 
 __all__ = [
     "health_router",
@@ -31,5 +33,7 @@ __all__ = [
     "referrals_router",
     "certificates_router",
     "gamification_router",
-    "admin_competitions_router"
+    "admin_competitions_router",
+    "learning_router",
+    "notifications_router",
 ]

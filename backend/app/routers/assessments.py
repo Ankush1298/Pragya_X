@@ -19,7 +19,7 @@ from ..schemas.assessments import (
     AssessmentHistoryResponse,
     AssessmentHistoryItem
 )
-from ..services.assessment_service import evaluate_assessment
+from ..services.learning_service import run_assessment
 from ..services.auth_service import get_current_user
 from ..database.repository import Repository
 
@@ -59,126 +59,8 @@ def get_assessment_questions(subject_id: str = "subj_python", user: dict = Depen
 
 @router.post("/submit", response_model=AssessmentResultResponse)
 def submit_assessment(payload: AssessmentSubmitRequest, user: dict = Depends(get_current_user)):
-    """
-    Evaluates assessment submission against backend reference keys and persists results.
-    Rejects incomplete or invalid submissions.
-    """
-    # 1. Fetch internal questions with answer keys
-    ref_questions = Repository.get_raw_assessment_questions_with_answers(payload.subject_id)
-    if not ref_questions or len(ref_questions) != 5:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Assessment must contain exactly 5 valid questions."
-        )
-
-    # 2. Validate that answers are provided for each question (and nothing else)
-    valid_options = {"A", "B", "C", "D"}
-    unknown = set(payload.answers) - {q["id"] for q in ref_questions}
-    if unknown:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unknown question id(s): {', '.join(sorted(unknown))}."
-        )
-    for q in ref_questions:
-        q_id = q["id"]
-        if q_id not in payload.answers:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Missing answer for question #{q['question_number']}."
-            )
-        ans = str(payload.answers[q_id]).strip().upper()
-        if ans not in valid_options:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid option '{ans}' for question #{q['question_number']}. Must be A, B, C, or D."
-            )
-
-    answers = {q_id: str(opt).strip().upper() for q_id, opt in payload.answers.items()}
-    subject = Repository.get_subject_by_id(ref_questions[0]["subject_id"])
-
-    if subject is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Assessment subject is unavailable."
-        )
-
-    # 3. Server-owned grading with AI-provided qualitative feedback
-    try:
-        eval_result = evaluate_assessment(
-            get_ai_provider(),
-            subject["title"],
-            ref_questions,
-            answers
-        )
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Assessment provider is temporarily unavailable."
-        ) from None
-
-    # 4. Persist result in database
-    attempt = Repository.save_assessment_attempt(
-        user_id=user["id"],
-        subject_id=ref_questions[0]["subject_id"],
-        score=eval_result["score"],
-        total=eval_result["total"],
-        percentage=eval_result["percentage"],
-        proficiency_level=eval_result["proficiency_level"],
-        summary_feedback=eval_result["summary_feedback"],
-        recommended_topics=eval_result["recommended_topics"],
-        user_answers=answers,
-        breakdown=eval_result["breakdown"]
-    )
-
-    # 5. Gamification & Referral qualification
-    try:
-        from ..database.competition_repository import CompetitionRepository
-        from ..services.referral_service import ReferralService
-        from ..services.certificate_service import CertificateService
-
-        # Record XP in unified ledger
-        pts = 50 + (50 if eval_result["percentage"] >= 80 else 0)
-        CompetitionRepository.record_xp_event(
-            user_id=user["id"],
-            event_key=f"assessment.{attempt['id']}",
-            points=pts,
-            reason=f"Completed {subject['title']} Assessment",
-            source_type="assessment",
-            source_id=attempt["id"]
-        )
-
-        # Trigger referral qualification if referee had pending referral
-        ReferralService.check_and_qualify_referral(user["id"], "assessment")
-
-        # Issue certificate if score >= 80%
-        if eval_result["percentage"] >= 80:
-            CertificateService.issue_certificate(
-                user_id=user["id"],
-                user_name=user.get("name", "Student"),
-                cert_type="ASSESSMENT",
-                title=f"{subject['title']} Excellence Certificate",
-                description=f"Scored {eval_result['percentage']}% ({eval_result['score']}/{eval_result['total']}) in {subject['title']} assessment",
-                metadata={"assessment_id": attempt["id"], "percentage": eval_result["percentage"]}
-            )
-    except Exception:
-        pass
-
-    return {
-        "id": attempt["id"],
-        "user_id": user["id"],
-        "subject_id": attempt["subject_id"],
-        "subject_title": attempt.get("subject_title", "Python Programming"),
-        "score": attempt["score"],
-        "total": attempt["total"],
-        "percentage": attempt["percentage"],
-        "proficiency_level": attempt["proficiency_level"],
-        "summary_feedback": attempt["summary_feedback"],
-        "recommended_topics": attempt["recommended_topics"],
-        "breakdown": attempt["breakdown"],
-        "is_mock": eval_result.get("is_mock", True),
-        "provider": eval_result.get("provider", "PragyaX AI"),
-        "created_at": attempt.get("created_at")
-    }
+    """Evaluates a submission against server-side keys. Prefer POST /learn/chats/{id}/assessment for chat-scoped diagnostics."""
+    return run_assessment(user, payload.subject_id, payload.answers, provider_factory=get_ai_provider)
 
 
 @router.get("/history", response_model=AssessmentHistoryResponse)

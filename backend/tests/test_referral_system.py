@@ -91,11 +91,20 @@ def test_referral_qualification_after_learning_milestone():
     }, headers={"Authorization": f"Bearer {referee['token']}"})
     assert sub_res.status_code == 200
 
-    # Referrer's dashboard now shows QUALIFIED referral and +150 XP earned!
+    # Product rule: an assessment alone must NOT qualify the referral
+    dash_mid = client.get("/api/referrals/dashboard", headers={"Authorization": f"Bearer {referrer['token']}"}).json()
+    assert dash_mid["successful_referrals"] == 0 and dash_mid["xp_earned_from_referrals"] == 0
+    assert dash_mid["referral_history"][0]["status"] == "PENDING"
+
+    # ...the first learning mission (module practice passed) completes the rule
+    from backend.tests.learning_helpers import complete_first_mission
+    complete_first_mission(client, {"Authorization": f"Bearer {referee['token']}"})
+
     dash_post = client.get("/api/referrals/dashboard", headers={"Authorization": f"Bearer {referrer['token']}"}).json()
     assert dash_post["successful_referrals"] >= 1
     assert dash_post["xp_earned_from_referrals"] >= 150
-    assert dash_post["referral_history"][0]["status"] == "QUALIFIED"
+    assert dash_post["referral_history"][0]["status"] == "REWARDED"
+    assert "referee_email" not in dash_post["referral_history"][0]
 
     # Referrer's XP ledger reflects referral award
     ledger_res = client.get("/api/gamification/ledger", headers={"Authorization": f"Bearer {referrer['token']}"})

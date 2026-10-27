@@ -1,3 +1,4 @@
+from ..database.connection import atomic_write, get_db
 """
 Hosted Competition Service (College & Company Challenges)
 Owned by: Ankush (Gamification & Competition Module Owner)
@@ -10,6 +11,32 @@ from typing import List, Dict, Any, Optional
 from ..database.competition_repository import CompetitionRepository
 from ..database.repository import Repository
 from .certificate_service import CertificateService
+from .notification_service import notify
+
+
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _parse_dt(value: Optional[str]) -> Optional[datetime]:
+    try:
+        d = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        return d if d.tzinfo else d.replace(tzinfo=timezone.utc)
+    except (ValueError, TypeError):
+        return None
+
+
+def effective_status(comp: Dict[str, Any]) -> str:
+    """Stored status wins for terminal states; otherwise derive SCHEDULED/ACTIVE/CLOSED from the time window."""
+    stored = (comp.get("status") or "SCHEDULED").upper()
+    if stored in ("COMPLETED", "ARCHIVED", "CANCELLED", "DRAFT"):
+        return stored
+    start, end, now = _parse_dt(comp.get("start_time")), _parse_dt(comp.get("end_time")), _now()
+    if start and now < start:
+        return "SCHEDULED"
+    if end and now > end:
+        return "CLOSED"
+    return "ACTIVE"
 
 
 class HostedCompetitionService:
@@ -89,6 +116,13 @@ class HostedCompetitionService:
                          f"Official {host_type} challenges cannot be hosted until verified."
             }
 
+        start_dt,end_dt=_parse_dt(start_time),_parse_dt(end_time)
+        if not start_dt or not end_dt or end_dt <= start_dt:
+            return {"error":"Provide valid start and end times; the end must be after the start."}
+        if not title.strip() or not description.strip():
+            return {"error":"A title and description are required."}
+        if any(q.get("correct_option", "").strip().upper() not in {"A","B","C","D"} for q in questions):
+            return {"error":"Each question must have a valid correct option A-D."}
         if not questions:
             return {"error": "Competition must contain at least one question."}
 
@@ -133,6 +167,7 @@ class HostedCompetitionService:
         comps = CompetitionRepository.list_hosted_competitions(status=status, host_type=host_type)
         # Strip authoritative answer keys from public listing
         for c in comps:
+            c["status"] = effective_status(c)
             safe_q = []
             for q in c.get("questions", []):
                 safe_q.append({
@@ -144,7 +179,8 @@ class HostedCompetitionService:
                     "option_d": q["option_d"],
                     "topic": q.get("topic", "")
                 })
-            c["questions"] = safe_q
+            c.pop("questions_json",None)
+            c["questions"] = [] if c["status"] == "SCHEDULED" else safe_q
         return comps
 
     @staticmethod
@@ -153,6 +189,7 @@ class HostedCompetitionService:
         comp = CompetitionRepository.get_hosted_competition_by_id(comp_id)
         if not comp:
             return None
+        comp["status"] = effective_status(comp)
 
         safe_q = []
         for q in comp.get("questions", []):
@@ -165,7 +202,8 @@ class HostedCompetitionService:
                 "option_d": q["option_d"],
                 "topic": q.get("topic", "")
             })
-        comp["questions"] = safe_q
+        comp.pop("questions_json",None)
+        comp["questions"] = [] if comp["status"] == "SCHEDULED" else safe_q  # no peeking before the start
 
         user_sub = None
         if user_id:
@@ -175,9 +213,13 @@ class HostedCompetitionService:
                     user_sub = entry
                     break
         comp["user_submission"] = user_sub
+        if user_id and comp["status"] in ("SCHEDULED","ACTIVE"):
+            comp["registration"] = HostedCompetitionService.register_participant(comp_id,user_id,start=comp["status"]=="ACTIVE")
+
         return comp
 
     @staticmethod
+    @atomic_write
     def submit_competition(
         comp_id: str,
         user_id: str,
@@ -193,8 +235,20 @@ class HostedCompetitionService:
         if not comp:
             return {"error": "Competition not found."}
 
-        if comp.get("status") not in ("ACTIVE", "SCHEDULED"):
-            return {"error": f"Competition is {comp.get('status')}, submissions are closed."}
+        status_now = effective_status(comp)
+        if status_now == "SCHEDULED":
+            return {"error": "This competition has not started yet."}
+        if status_now != "ACTIVE":
+            return {"error": f"Competition is {status_now.lower()}, submissions are closed."}
+        if any(e["user_id"] == user_id for e in CompetitionRepository.get_competition_leaderboard(comp_id)):
+            return {"error": "You have already submitted to this competition. One attempt per student."}
+
+        registration=HostedCompetitionService.register_participant(comp_id,user_id,start=True)
+        started=_parse_dt(registration.get("started_at"))
+        time_taken_seconds=max(0.0,(_now()-started).total_seconds()) if started else 0.0
+        valid_ids={q["id"] for q in comp["questions"]}
+        if set(answers)-valid_ids or any(v.strip().upper() not in {"A","B","C","D"} for v in answers.values()):
+            return {"error":"Answer sheet contains invalid questions or choices."}
 
         # Grade authoritatively
         raw_questions = comp["questions"]
@@ -281,6 +335,7 @@ class HostedCompetitionService:
         }
 
     @staticmethod
+    @atomic_write
     def announce_winners_and_issue_certificates(comp_id: str, user_id: str, is_admin: bool = False) -> Dict[str, Any]:
         """
         Announces winners and automatically issues verified competition certificates
@@ -314,9 +369,33 @@ class HostedCompetitionService:
             }
         )
 
+        notify(
+            winner["user_id"],
+            "achievement",
+            "Competition Winner!",
+            f"You won {comp['title']}! Your verified certificate is ready.",
+            f"/certificates/{cert['verification_id']}",
+            f"cert:{cert['verification_id']}"
+        )
+
+        with get_db() as conn:
+            conn.cursor().execute("UPDATE hosted_competitions SET status='COMPLETED' WHERE id=?",(comp_id,))
+
         return {
             "winner": winner,
             "certificate": cert,
             "top_3": leaderboard[:3],
             "status": "ANNOUNCED"
         }
+
+
+    @staticmethod
+    @atomic_write
+    def register_participant(comp_id,user_id,start=False):
+        with get_db() as conn:
+            cur=conn.cursor()
+            cur.execute("INSERT INTO competition_registrations(comp_id,user_id,started_at) "
+                        "VALUES (?,?,CASE WHEN ? THEN now() ELSE NULL END) "
+                        "ON CONFLICT(comp_id,user_id) DO UPDATE SET started_at=COALESCE(competition_registrations.started_at,excluded.started_at) RETURNING *",
+                        (comp_id,user_id,start))
+            return cur.fetchone()

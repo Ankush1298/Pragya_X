@@ -77,7 +77,7 @@ class AdminCompetitionService:
                 SELECT user_id, COUNT(*) AS total_redemptions, SUM(xp_spent) AS total_xp_spent
                 FROM reward_redemptions
                 GROUP BY user_id
-                HAVING total_redemptions > 5
+                HAVING COUNT(*) > 5
                 ORDER BY total_redemptions DESC;
             """)
             return [dict(r) for r in cur.fetchall()]

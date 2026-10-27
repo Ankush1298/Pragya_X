@@ -11,6 +11,7 @@ import os
 import secrets
 import re
 from fastapi import Header, HTTPException, status
+from ..config import settings
 from ..database.repository import Repository
 
 
@@ -72,3 +73,8 @@ def get_current_user(authorization: str = Header(None)) -> dict:
         )
 
     return user
+
+
+def is_admin_user(user: dict) -> bool:
+    """Server-side admin check: email must be in the ADMIN_EMAILS allow-list (empty by default)."""
+    return (user.get("email") or "").lower() in settings.ADMIN_EMAILS

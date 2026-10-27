@@ -14,7 +14,7 @@ from ..schemas.challenges import (
     UserStreakResponse,
     ChallengeCreateRequest
 )
-from ..services.auth_service import get_current_user
+from ..services.auth_service import get_current_user, is_admin_user
 from ..services.challenge_service import ChallengeService
 from ..services.referral_service import ReferralService
 
@@ -127,7 +127,10 @@ def get_challenge_leaderboard(limit: int = 25):
 @router.post("/create")
 def create_challenge(payload: ChallengeCreateRequest, user: dict = Depends(get_current_user)):
     """Creates a new platform or hosted challenge."""
-    created = ChallengeService.create_challenge({
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Only administrators can publish platform challenges. Use a student-hosted competition for peer challenges.")
+    from ..database.competition_repository import CompetitionRepository
+    created = CompetitionRepository.create_challenge({
         "subject_id": payload.subject_id,
         "title": payload.title,
         "topic": payload.topic,

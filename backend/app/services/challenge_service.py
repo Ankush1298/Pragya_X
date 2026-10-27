@@ -1,9 +1,11 @@
+from ..database.connection import atomic_write
 """
 Challenge Management Service
 Owned by: Ankush (Gamification & Competition Module Owner)
 Reuses: daily_challenge_engine.py, leaderboard_engine.py, gamification_service.py
 """
 
+import uuid
 from datetime import date, datetime
 from typing import List, Dict, Any, Optional
 from ..database.competition_repository import CompetitionRepository
@@ -39,9 +41,8 @@ class ChallengeService:
         subj_challenges = [c for c in all_challenges if c["subject_id"] == subject_id]
 
         if not subj_challenges:
-            # Fallback to single static V1 challenge if pool empty
-            chal = CompetitionRepository.get_all_challenges()[0] if all_challenges else {}
-            return chal
+            # Never return a raw repository row containing the hidden answer key.
+            return {}
 
         # Convert to ChallengeDefinition objects for daily_challenge_engine
         defs = []
@@ -127,6 +128,7 @@ class ChallengeService:
         return results
 
     @staticmethod
+    @atomic_write
     def submit_challenge(user_id: str, challenge_id: str, selected_option: str) -> Dict[str, Any]:
         """
         Validates challenge answer, updates streaks, awards XP via ledger, and issues streak badges.
@@ -181,21 +183,24 @@ class ChallengeService:
             with get_db() as conn:
                 cur = conn.cursor()
                 cur.execute("""
-                    INSERT OR IGNORE INTO user_badges (id, user_id, badge_key, title, description, icon)
-                    VALUES (?, ?, 'daily_striker', 'Daily Code Breaker', 'Solved today''s code snippet challenge', 'zap');
-                """, (f"bdg_str_{user_id[-4:]}", user_id))
+                    INSERT INTO user_badges (id, user_id, badge_key, title, description, icon)
+                    VALUES (?, ?, 'daily_striker', 'Daily Code Breaker', 'Solved today''s code snippet challenge', 'zap')
+                    ON CONFLICT (user_id, badge_key) DO NOTHING;
+                """, (f"bdg_{uuid.uuid4().hex[:12]}", user_id))
 
                 if streak_days >= 3:
                     cur.execute("""
-                        INSERT OR IGNORE INTO user_badges (id, user_id, badge_key, title, description, icon)
-                        VALUES (?, ?, 'streak_3', '3-Day Hot Streak', 'Solved daily challenges 3 days in a row', 'flame');
-                    """, (f"bdg_st3_{user_id[-4:]}", user_id))
+                        INSERT INTO user_badges (id, user_id, badge_key, title, description, icon)
+                        VALUES (?, ?, 'streak_3', '3-Day Hot Streak', 'Solved daily challenges 3 days in a row', 'flame')
+                        ON CONFLICT (user_id, badge_key) DO NOTHING;
+                    """, (f"bdg_{uuid.uuid4().hex[:12]}", user_id))
                     badges_awarded.append("streak_3")
                 if streak_days >= 7:
                     cur.execute("""
-                        INSERT OR IGNORE INTO user_badges (id, user_id, badge_key, title, description, icon)
-                        VALUES (?, ?, 'streak_7', 'Weekly Master', 'Maintained a 7-day challenge streak', 'crown');
-                    """, (f"bdg_st7_{user_id[-4:]}", user_id))
+                        INSERT INTO user_badges (id, user_id, badge_key, title, description, icon)
+                        VALUES (?, ?, 'streak_7', 'Weekly Master', 'Maintained a 7-day challenge streak', 'crown')
+                        ON CONFLICT (user_id, badge_key) DO NOTHING;
+                    """, (f"bdg_{uuid.uuid4().hex[:12]}", user_id))
                     badges_awarded.append("streak_7")
 
         return {
@@ -237,7 +242,7 @@ class ChallengeService:
                 SELECT s.user_id, u.name,
                        COALESCE(SUM(s.points_awarded), 0) AS total_points,
                        COUNT(*) AS solved_count,
-                       COALESCE(st.current_streak, 0) AS current_streak
+                       COALESCE(MAX(st.current_streak), 0) AS current_streak
                 FROM challenge_submissions s
                 JOIN users u ON s.user_id = u.id
                 LEFT JOIN user_streaks st ON s.user_id = st.user_id

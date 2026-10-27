@@ -8,9 +8,24 @@ export type RoutePath =
   | "assessment"
   | "results"
   | "result"
-  | "challenge";
+  | "library"
+  | "challenge"
+  | "learn"
+  | "module"
+  | "teams"
+  | "projects"
+  | "battles"
+  | "competitions"
+  | "leaderboards"
+  | "profile"
+  | "rewards"
+  | "referrals"
+  | "settings"
+  | "notifications"
+  | "admin"
+  | "verify";
 
-export type NavCategory = "core" | "practice" | "records";
+export type NavCategory = "learn" | "compete" | "growth" | "account" | "admin";
 
 export interface NavItem {
   readonly path: RoutePath;
@@ -31,5 +46,6 @@ export interface RouteConfig {
 export interface ParsedRoute {
   readonly path: RoutePath;
   readonly param?: string;
+  readonly param2?: string;
   readonly fullPath: string;
 }

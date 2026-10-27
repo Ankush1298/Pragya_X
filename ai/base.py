@@ -4,7 +4,7 @@ Defines the contract for all AI evaluation and chat reasoning engines.
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 
 class BaseAIProvider(ABC):
@@ -27,7 +27,8 @@ class BaseAIProvider(ABC):
 
     @abstractmethod
     def generate_chat_response(
-        self, prompt: str, subject: str = "Python Programming", history: List[Dict[str, str]] = None
+        self, prompt: str, subject: str = "Python Programming", history: List[Dict[str, str]] = None,
+        learner_context: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Generates an educational, context-aware pedagogical response for the user.

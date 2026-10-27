@@ -793,7 +793,8 @@ class MockAIProvider(BaseAIProvider):
         return True
 
     def generate_chat_response(
-        self, prompt: str, subject: str = "Python Programming", history: List[Dict[str, str]] = None
+        self, prompt: str, subject: str = "Python Programming", history: List[Dict[str, str]] = None,
+        learner_context: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Generates context-aware, deterministic pedagogical explanations across subjects.

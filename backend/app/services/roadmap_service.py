@@ -111,6 +111,7 @@ SUBJECT_CATALOGS: Dict[str, Dict[str, Dict[str, Any]]] = {
 }
 
 
+
 def validate_catalog_integrity(catalog: Dict[str, Dict[str, Any]]) -> None:
     """
     Validates structural integrity of a curriculum catalog:
@@ -401,3 +402,12 @@ def build_deterministic_roadmap(
         "modules": modules,
         "overall_progress_percentage": overall_progress
     }
+
+# Curated Biology / Business / AI-ML catalogs share the same engine as Python.
+from .curriculum import catalogs_for_roadmap, SUBJECT_TITLES  # noqa: E402
+
+for _sid, _cat in catalogs_for_roadmap().items():
+    if _sid not in SUBJECT_CATALOGS:
+        validate_catalog_integrity(_cat)
+        SUBJECT_CATALOGS[_sid] = _cat
+        SUPPORTED_SUBJECTS[_sid] = SUBJECT_TITLES[_sid]

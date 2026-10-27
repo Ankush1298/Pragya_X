@@ -6,8 +6,8 @@ Every test builds its own inputs, so tests pass in any order and individually.
 
 The service is loaded straight from its file instead of `import backend.app.services...`.
 Importing the package would run backend/app/services/__init__.py, which imports the
-repository and backend/app/config.py; config reads .env and fixes DATABASE_PATH at import
-time. If that happened before test_api_flow.py sets its temporary DATABASE_PATH, the API
+repository and backend/app/config.py; config reads .env and fixes DATABASE_URL at import
+time. If that happened before test_api_flow.py sets its temporary DATABASE_URL, the API
 tests would write to the real pragyax.db. Loading by path removes that risk.
 """
 
@@ -436,4 +436,4 @@ def test_service_uses_only_side_effect_free_standard_library_modules():
             assert node.level == 0, "no relative imports: the service must not depend on app modules"
             imported.add(node.module.split(".")[0])
     assert imported <= set(sys.stdlib_module_names), imported
-    assert not imported & {"sqlite3", "os", "io", "socket", "http", "urllib", "subprocess", "random", "time", "datetime"}
+    assert not imported & {"psycopg", "os", "io", "socket", "http", "urllib", "subprocess", "random", "time", "datetime"}

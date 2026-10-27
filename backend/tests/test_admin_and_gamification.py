@@ -95,7 +95,8 @@ def test_reward_catalog_and_redemption_flow():
     assert any(e["points_delta"] == -200 for e in ledger)
 
 
-def test_admin_competition_management_and_analytics():
+def test_admin_competition_management_and_analytics(monkeypatch):
+    monkeypatch.setenv("ADMIN_EMAILS", "super_admin@pragyax.test")
     # Create admin user
     client.post("/api/auth/register", json={
         "name": "Super Admin",

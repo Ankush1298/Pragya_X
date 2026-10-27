@@ -7,7 +7,7 @@ Provides admin-only endpoints for host approvals, competition audits, and platfo
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from typing import Optional
-from ..services.auth_service import get_current_user
+from ..services.auth_service import get_current_user, is_admin_user
 from ..services.admin_competition_service import AdminCompetitionService
 
 router = APIRouter(prefix="/admin/competitions", tags=["Admin Competitions"])
@@ -18,13 +18,8 @@ class VerifyOrgRequest(BaseModel):
 
 
 def require_admin_user(user: dict = Depends(get_current_user)):
-    """Enforces admin role or platform administrator email/id."""
-    is_admin = (
-        user.get("role") == "admin" or
-        user.get("id") == "system_admin" or
-        user.get("email") in ("admin@pragyax.test", "super_admin@pragyax.test", "system_admin@pragyax.org")
-    )
-    if not is_admin:
+    """Server-side admin check against the ADMIN_EMAILS allow-list (empty by default = nobody)."""
+    if not is_admin_user(user):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Administrative privileges required."

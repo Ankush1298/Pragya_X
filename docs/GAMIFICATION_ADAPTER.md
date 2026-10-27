@@ -1,3 +1,5 @@
+> Historical design/test record. Database and release claims here are superseded by POSTGRESQL_ONLY_VERIFICATION.md and FINAL_PRODUCT_AUDIT.md (27 October 2026).
+
 # PragyaX Gamification Integration Adapter (G-6 foundation)
 
 > **Owner:** Ankush · **Status (2026-10-27):** `backend/app/services/gamification_integration.py` exists and is unit-tested against an **in-memory fake** only.

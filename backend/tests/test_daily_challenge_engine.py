@@ -14,7 +14,7 @@ import dataclasses
 import importlib.util
 import random
 import socket
-import sqlite3
+import psycopg
 import sys
 import types
 from datetime import date, datetime, timedelta, timezone
@@ -295,7 +295,7 @@ def test_no_random_clock_network_filesystem_or_database_use(monkeypatch):
         raise AssertionError("daily challenge engine must be pure")
 
     monkeypatch.setattr(builtins, "open", forbidden)
-    monkeypatch.setattr(sqlite3, "connect", forbidden)
+    monkeypatch.setattr(psycopg, "connect", forbidden)
     monkeypatch.setattr(socket, "socket", forbidden)
     p = pool("subj_python", *PY_POOL_IDS)
     for i in range(30):
@@ -319,7 +319,7 @@ def test_module_has_no_clock_or_randomness_in_its_source():
         elif isinstance(node, ast.Attribute):
             attributes.add(node.attr)
     assert absolute <= set(sys.stdlib_module_names), absolute
-    assert not absolute & {"random", "secrets", "time", "os", "io", "socket", "sqlite3", "uuid", "zoneinfo", "http", "urllib"}
+    assert not absolute & {"random", "secrets", "time", "os", "io", "socket", "psycopg", "uuid", "zoneinfo", "http", "urllib"}
     assert relative == {"gamification_service"}
     assert not attributes & {"now", "today", "utcnow", "time"}
 

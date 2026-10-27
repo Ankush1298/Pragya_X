@@ -1,3 +1,5 @@
+> Historical design/test record. Database and release claims here are superseded by POSTGRESQL_ONLY_VERIFICATION.md and FINAL_PRODUCT_AUDIT.md (27 October 2026).
+
 # PragyaX Gamification Integration Plan (Phase 2, Task 02)
 
 > **Status:** Design only. **Nothing in this document is implemented.** No router, repository, table, migration or test was changed to produce it.

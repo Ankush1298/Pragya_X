@@ -21,11 +21,8 @@ import tempfile
 import pytest
 from fastapi.testclient import TestClient
 
-test_db_path = os.path.join(tempfile.mkdtemp(prefix="pragyax_test_"), "test.db")
 
 from backend.app.config import settings
-settings.DATABASE_URL = None
-settings.DATABASE_PATH = test_db_path
 os.environ["AI_PROVIDER"] = "mock"
 
 from backend.app.main import app
@@ -363,7 +360,7 @@ def test_persistence_survives_restart():
     headers = _login()
     before = client.get("/api/assessments/history", headers=headers).json()["attempts"]
     assert before
-    # Simulate a backend restart: brand-new app client against the same SQLite file
+    # Simulate a backend restart: brand-new app client against the same PostgreSQL database
     with TestClient(app) as restarted:
         after = restarted.get("/api/assessments/history", headers=headers).json()["attempts"]
         assert [a["id"] for a in after] == [a["id"] for a in before]
@@ -380,7 +377,8 @@ def test_dashboard_reflects_saved_records():
     assert dash["recommendations_source"] == "latest_assessment"
     assert dash["has_selected_subject"] is True
     assert dash["metrics"]["chat_questions_asked"] >= 1
-    assert dash["metrics"]["total_points"] == 50
+    assert dash["metrics"]["total_points"] == client.get("/api/gamification/profile", headers=headers).json()["total_xp"]
+    assert dash["metrics"]["total_points"] == 150  # diagnostic + challenge
 
 
 def test_new_user_dashboard_has_no_fabricated_stats():

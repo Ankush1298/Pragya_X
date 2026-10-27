@@ -105,6 +105,9 @@ class GamificationHub:
         for item in catalog:
             item["can_afford"] = (total_xp >= item["xp_cost"])
             item["shortfall"] = max(0, item["xp_cost"] - total_xp)
+            # No fulfilment pipeline exists: every reward is a demo entry and must be presented as such.
+            item["is_demo"] = True
+            item["fulfillment_note"] = "Demo reward: redeeming deducts demo XP only. Nothing is shipped or scheduled."
         return catalog
 
     @staticmethod

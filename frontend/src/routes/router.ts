@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { ParsedRoute, RoutePath } from "../types/routes";
-import { ROUTE_TITLES } from "./navigation";
+import { ROUTE_PATHS, ROUTE_TITLES } from "./navigation";
 
 const DEFAULT_ROUTE: RoutePath = "dashboard";
 
@@ -15,28 +15,22 @@ export function parseHashRoute(): ParsedRoute {
   const segments = hash.split("/").filter(Boolean);
   const rawPath = segments[0] as RoutePath | undefined;
   const param = segments[1];
+  const param2 = segments[2];
 
-  const validPaths: RoutePath[] = [
-    "dashboard",
-    "chat",
-    "subjects",
-    "assessment",
-    "results",
-    "result",
-    "challenge",
-  ];
+  const validPaths = ROUTE_PATHS;
 
   const path = rawPath && validPaths.includes(rawPath) ? rawPath : DEFAULT_ROUTE;
 
   return {
     path,
     param,
+    param2,
     fullPath: `/${segments.join("/")}`,
   };
 }
 
-export function navigate(path: RoutePath | string, param?: string) {
-  const target = param ? `/${path}/${param}` : `/${path}`;
+export function navigate(path: RoutePath | string, param?: string, param2?: string) {
+  const target = [path, param, param2].filter(Boolean).map((p) => `/${p}`).join("");
   if (window.location.hash !== `#${target}`) {
     window.location.hash = target;
   }
@@ -72,6 +66,7 @@ export function useAppRouter() {
   return {
     route: current.path,
     param: current.param,
+    param2: current.param2,
     navigate,
     isActive,
   };
