@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, CSSProperties, InputHTMLAttributes, ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "outline" | "danger" | "accent";
@@ -22,6 +22,7 @@ export interface BadgeProps {
   children: ReactNode;
   className?: string;
   title?: string;
+  style?: CSSProperties;
 }
 
 export interface CardProps {
@@ -30,6 +31,7 @@ export interface CardProps {
   onClick?: () => void;
   hoverable?: boolean;
   role?: string;
+  style?: CSSProperties;
 }
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {

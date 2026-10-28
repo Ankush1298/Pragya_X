@@ -45,8 +45,9 @@ function ChatHub() {
     <div className="page">
       <header className="page-head">
         <div>
-          <h1>My Learning Chats</h1>
-          <p className="muted">Each chat is its own space for one subject: its own mentor conversation, diagnostic, roadmap and progress. Nothing is mixed between chats.</p>
+          <div className="eyebrow">CURRICULUM WORKSPACES // ADAPTIVE ROADMAPS</div>
+          <h1>MY LEARNING CHATS</h1>
+          <p className="muted">Each chat is its own dedicated workspace for one subject: conversational mentor, diagnostic, roadmap, and measured progress.</p>
         </div>
       </header>
 
@@ -148,6 +149,7 @@ function Workspace({ chatId }: { chatId: string }) {
     <div className="page">
       <header className="page-head">
         <div>
+          <div className="eyebrow">CURRICULUM TRACK // {c.subject_title.toUpperCase()}</div>
           {renaming ? (
             <form className="inline-form" onSubmit={(e) => { e.preventDefault(); saveTitle(); }}>
               <input aria-label="Chat title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} autoFocus />

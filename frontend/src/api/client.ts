@@ -15,8 +15,9 @@ import type {
   User,
 } from "./types";
 
-// Empty base = same origin; Vite proxies /api to FastAPI in dev.
-const BASE = import.meta.env.VITE_API_URL ?? "";
+// Normalized base URL; Vite proxies /api to FastAPI in dev when empty.
+export const API_BASE = (import.meta.env.VITE_API_URL ?? "").trim().replace(/\/+$/, "");
+const BASE = API_BASE;
 const TOKEN_KEY = "pragyax_token";
 
 export class ApiError extends Error {

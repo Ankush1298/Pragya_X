@@ -36,7 +36,7 @@ export function Sidebar({
         <a href="#/dashboard" className="brand brand-lg" onClick={onClose}>
           <GraduationCap size={24} aria-hidden /> Pragya<span className="brand-x">X</span>
         </a>
-        <p className="tagline">AI-Powered Practical Learning</p>
+        <p className="tagline">AI ARENA // EDTECH 2.0</p>
       </div>
 
       <nav aria-label="Main Navigation" style={{ display: "flex", flexDirection: "column" }}>

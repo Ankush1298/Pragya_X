@@ -9,6 +9,7 @@ Tests:
 6. Notification delivery and read/unread state.
 """
 
+import os
 import sys
 from pathlib import Path
 root_dir = Path(__file__).resolve().parents[1]
@@ -17,7 +18,7 @@ if str(root_dir) not in sys.path:
 import uuid
 import httpx
 
-BASE_URL = "http://127.0.0.1:8011/api"
+BASE_URL = os.environ.get("BASE_URL", "http://127.0.0.1:8000/api")
 
 client = httpx.Client(base_url=BASE_URL, timeout=30.0)
 

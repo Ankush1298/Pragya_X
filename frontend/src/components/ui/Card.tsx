@@ -1,12 +1,13 @@
 import type { ReactNode } from "react";
 import type { CardProps } from "../../types/ui";
 
-export function Card({ children, className = "", onClick, role }: CardProps) {
+export function Card({ children, className = "", onClick, role, style }: CardProps) {
   return (
     <div
       className={`card ${className}`.trim()}
       onClick={onClick}
       role={role}
+      style={style}
     >
       {children}
     </div>
