@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, CircleCheck, Send } from "lucide-react";
 import { api } from "../api/client";
 import type { Option, Question } from "../api/types";
 import { DemoBadge, ErrorBox, Loading } from "../components/States";
+import { Button, Badge } from "../components/ui";
 import { navigate, useLoad } from "../hooks";
 
 const OPTIONS: Option[] = ["A", "B", "C", "D"];
@@ -22,7 +23,7 @@ export default function AssessmentPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  if (loading) return <Loading label="Loading your assessment…" />;
+  if (loading) return <Loading label="Loading diagnostic assessment…" />;
   if (error || !data) return <ErrorBox message={error ?? "No data"} onRetry={reload} />;
 
   const { subject, questions } = data;
@@ -48,11 +49,15 @@ export default function AssessmentPage() {
     <div className="page narrow">
       <header className="page-head">
         <div>
-          <h1>{subject.title} assessment</h1>
-          <p className="muted">{total} questions · graded on the server <DemoBadge label="Mock Evaluation" /></p>
+          <div className="eyebrow">DIAGNOSTIC ENGINE // {subject.title.toUpperCase()}</div>
+          <h1>{subject.title.toUpperCase()} ASSESSMENT</h1>
+          <p className="muted">
+            {total} focused questions · Graded strictly on the server <DemoBadge label="Mock Evaluation" />
+          </p>
         </div>
       </header>
 
+      {/* Stepper Navigation */}
       <ol className="stepper" aria-label="Assessment progress">
         {questions.map((qq, i) => (
           <li key={qq.id}>
@@ -67,19 +72,27 @@ export default function AssessmentPage() {
           </li>
         ))}
         <li>
-          <button className={`step step-review ${isReview ? "current" : ""}`} onClick={() => setStep(total)} aria-current={isReview ? "step" : undefined}>
-            Review
+          <button
+            className={`step step-review ${isReview ? "current" : ""}`}
+            onClick={() => setStep(total)}
+            aria-current={isReview ? "step" : undefined}
+          >
+            Review ({answered}/{total})
           </button>
         </li>
       </ol>
 
       {!isReview ? (
         <section className="card question">
-          <div className="row-between">
-            <span className="muted small">Question {step + 1} of {total}</span>
-            <span className="badge">{q.topic}</span>
+          <div className="row-between" style={{ marginBottom: 12 }}>
+            <span className="badge badge-primary">
+              QUESTION {step + 1} OF {total}
+            </span>
+            <Badge variant="accent">{q.topic}</Badge>
           </div>
+
           <pre className="question-text">{q.question_text}</pre>
+
           <fieldset className="options">
             <legend className="sr-only">Choose one answer</legend>
             {OPTIONS.map((o) => (
@@ -96,33 +109,96 @@ export default function AssessmentPage() {
               </label>
             ))}
           </fieldset>
-          <div className="row-between">
-            <button className="btn btn-ghost" disabled={step === 0} onClick={() => setStep(step - 1)}>
-              <ArrowLeft size={15} aria-hidden /> Previous
-            </button>
-            <button className="btn btn-primary" disabled={!answers[q.id]} onClick={() => setStep(step + 1)}>
-              {step === total - 1 ? "Review answers" : "Next"} <ArrowRight size={15} aria-hidden />
-            </button>
+
+          <div className="row-between" style={{ marginTop: 20 }}>
+            <Button
+              variant="ghost"
+              disabled={step === 0}
+              onClick={() => setStep(step - 1)}
+              leftIcon={ArrowLeft}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="primary"
+              disabled={!answers[q.id]}
+              onClick={() => setStep(step + 1)}
+              rightIcon={ArrowRight}
+            >
+              {step === total - 1 ? "Review Answers" : "Next Question"}
+            </Button>
           </div>
         </section>
       ) : (
         <section className="card">
-          <h2>Review your answers</h2>
-          <p className="muted">{answered} of {total} answered. You can submit only once per attempt.</p>
-          <ul className="review-list">
+          <div className="row-between" style={{ marginBottom: 12 }}>
+            <h2>REVIEW YOUR RESPONSES</h2>
+            <Badge variant={answered === total ? "success" : "warning"}>
+              {answered}/{total} COMPLETED
+            </Badge>
+          </div>
+          <p className="muted small">
+            Verify your answers before final grading. Submissions are permanently saved to your verified skill history.
+          </p>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, margin: "18px 0" }}>
             {questions.map((qq, i) => (
-              <li key={qq.id}>
-                <button className="link" onClick={() => setStep(i)}>Q{i + 1}. {qq.topic}</button>
-                <span className={answers[qq.id] ? "badge" : "badge badge-warn"}>
-                  {answers[qq.id] ? `Answer ${answers[qq.id]}` : "Not answered"}
+              <div
+                key={qq.id}
+                className="row-between"
+                style={{
+                  padding: "12px 16px",
+                  border: "2px solid var(--border-strong)",
+                  boxShadow: "var(--shadow-sm)",
+                  borderRadius: "var(--radius-xs)",
+                  backgroundColor: answers[qq.id] ? "#FFFFFF" : "#FEF3C7",
+                }}
+              >
+                <div>
+                  <button
+                    className="link"
+                    onClick={() => setStep(i)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: 0,
+                      fontWeight: 800,
+                      fontFamily: "var(--font-heading)",
+                      fontSize: "0.95rem",
+                      textAlign: "left",
+                    }}
+                  >
+                    Q{i + 1}. {qq.topic}
+                  </button>
+                  <p className="muted small" style={{ margin: "2px 0 0" }}>
+                    {qq.question_text.slice(0, 70)}…
+                  </p>
+                </div>
+                <span className={answers[qq.id] ? "badge badge-primary" : "badge badge-warn"}>
+                  {answers[qq.id] ? `OPTION ${answers[qq.id]}` : "NOT ANSWERED"}
                 </span>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
+
           {submitError && <ErrorBox message={submitError} />}
-          <button className="btn btn-primary btn-block" disabled={answered < total || submitting} onClick={submit}>
-            <Send size={15} aria-hidden /> {submitting ? "Evaluating…" : answered < total ? `Answer all ${total} questions to submit` : "Submit for evaluation"}
-          </button>
+
+          <Button
+            variant="primary"
+            size="lg"
+            block
+            disabled={answered < total || submitting}
+            loading={submitting}
+            onClick={submit}
+            leftIcon={Send}
+          >
+            {submitting
+              ? "Grading on Server…"
+              : answered < total
+              ? `Answer all ${total} questions to submit (${answered} completed)`
+              : "Submit for Official Evaluation"}
+          </Button>
         </section>
       )}
     </div>

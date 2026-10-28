@@ -1,14 +1,17 @@
 import { useRef, useState, type FormEvent } from "react";
 import {
   ArrowDown,
+  ArrowRight,
   Award,
   Bot,
   BrainCircuit,
   Compass,
-  FileCode2,
+  FolderKanban,
   GraduationCap,
   Lock,
+  Medal,
   Sparkles,
+  Swords,
   Target,
   Trophy,
   Zap,
@@ -30,13 +33,14 @@ export default function AuthPage({
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [referral,setReferral] = useState(() => new URLSearchParams(window.location.hash.split("?")[1] ?? window.location.search).get("ref") ?? "");
+  const [referral, setReferral] = useState(() => new URLSearchParams(window.location.hash.split("?")[1] ?? window.location.search).get("ref") ?? "");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const accountRef = useRef<HTMLDivElement>(null);
   const journeyRef = useRef<HTMLElement>(null);
   const philosophyRef = useRef<HTMLElement>(null);
+  const arenaRef = useRef<HTMLElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const emailInputRef = useRef<HTMLInputElement>(null);
 
@@ -100,20 +104,32 @@ export default function AuthPage({
     journeyRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const scrollToArena = () => {
+    arenaRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
     <div className="landing-shell">
+      {/* Editorial Brutalist Top Marquee */}
+      <div className="landing-ticker" aria-hidden="true">
+        <span>/// PRAGYAX EDTECH ARENA — NEXT-GEN AI GAMIFIED MASTERY — 1v1 CODE BATTLES — ADAPTIVE DIAGNOSTICS — VERIFIED SCORECARDS — REAL PORTFOLIO EVIDENCE ///</span>
+      </div>
+
       {/* Subtle Architectural Grid Lines Overlay */}
       <div className="grid-lines-bg" aria-hidden="true" />
 
       {/* Top Editorial Navigation */}
       <header className="landing-nav">
         <a href="#/" className="brand">
-          <GraduationCap size={26} aria-hidden /> Pragya<span className="brand-x">X</span>
+          <GraduationCap size={24} aria-hidden /> Pragya<span className="brand-x">X</span>
         </a>
 
         <nav className="landing-nav-links" aria-label="Landing Navigation">
           <a href="#philosophy" onClick={(e) => { e.preventDefault(); scrollToPhilosophy(); }}>
             Philosophy
+          </a>
+          <a href="#arena" onClick={(e) => { e.preventDefault(); scrollToArena(); }}>
+            Arena & Battles
           </a>
           <a href="#journey" onClick={(e) => { e.preventDefault(); scrollToJourney(); }}>
             Journey
@@ -134,24 +150,25 @@ export default function AuthPage({
             size="sm"
             onClick={() => focusAuth("register")}
           >
-            Create Account
+            Get Started
           </Button>
         </div>
       </header>
 
-      {/* Hero Section — Prominent Artwork & Upper-Viewport Authentication */}
+      {/* Hero Section — Editorial Brutalist Typography & Asymmetric Layout */}
       <section className="hero-section" id="hero">
         <div className="hero-text-block">
-          <div className="eyebrow">AI-POWERED GAMIFIED LEARNING</div>
+          <div className="eyebrow">AI-POWERED GAMIFIED LEARNING ARENA</div>
 
           <h1 className="hero-headline">
-            Learn by doing. <br />
-            Grow by <em>proving.</em>
+            LEARN.<br />
+            COMPETE.<br />
+            <em>EVOLVE.</em>
           </h1>
 
           <p className="hero-lead">
-            Turn theoretical knowledge into real skills with personalized learning,
-            adaptive assessments, and verifiable skill scorecards.
+            Your AI-powered learning arena. Master concepts, test your skills,
+            compete with others, and turn knowledge into real-world achievements.
           </p>
 
           {/* Authentication Card Positioned Directly in Upper Viewport */}
@@ -216,15 +233,27 @@ export default function AuthPage({
 
               {error && <Alert variant="error" message={error} />}
 
-              {mode === "register" && <label className="field">Referral code (optional)<input value={referral} maxLength={64} onChange={e=>setReferral(e.target.value.toUpperCase())}/></label>}
-                  <Button
+              {mode === "register" && (
+                <label className="field">
+                  <span>Referral code (optional)</span>
+                  <input
+                    value={referral}
+                    maxLength={64}
+                    onChange={(e) => setReferral(e.target.value.toUpperCase())}
+                    placeholder="e.g. PRAGYAX-CODE"
+                  />
+                </label>
+              )}
+
+              <Button
                 type="submit"
                 variant="primary"
                 block
                 disabled={busy}
                 loading={busy}
+                style={{ marginTop: 8 }}
               >
-                {mode === "register" ? "Create Account & Start Learning" : "Log In to Your Account"}
+                {mode === "register" ? "Enter the Arena & Start Learning" : "Log In to Your Arena Account"}
               </Button>
             </form>
 
@@ -237,7 +266,7 @@ export default function AuthPage({
                 className="scroll-peek-link"
                 onClick={scrollToJourney}
               >
-                Explore method & curriculum <ArrowDown size={13} aria-hidden />
+                Explore curriculum & arena <ArrowDown size={13} aria-hidden />
               </button>
             </div>
           </div>
@@ -254,11 +283,11 @@ export default function AuthPage({
               <span>5-Question Diagnostics</span>
             </div>
             <div className="hero-meta-item">
-              <strong>02 / Tutor</strong>
-              <span>Interactive AI Chat</span>
+              <strong>02 / Arena</strong>
+              <span>1v1 Real-Time Battles</span>
             </div>
             <div className="hero-meta-item">
-              <strong>03 / Master</strong>
+              <strong>03 / Prove</strong>
               <span>Verified Skill Scorecards</span>
             </div>
           </div>
@@ -269,7 +298,7 @@ export default function AuthPage({
       <section id="philosophy" ref={philosophyRef} className="editorial-section">
         <div className="section-header">
           <div className="eyebrow">THE PRAGYAX METHOD</div>
-          <h2>Moving beyond passive memorization into verifiable ability.</h2>
+          <h2>FROM THEORY TO PRACTICE. PROVEN BY CODE.</h2>
           <p className="muted">
             College learning shouldn't stop at reading textbooks. PragyaX combines
             interactive dialogue, objective testing, and real coding practice.
@@ -315,11 +344,63 @@ export default function AuthPage({
         </div>
       </section>
 
+      {/* Section Arena: 1v1 Battles & Competitions */}
+      <section id="arena" ref={arenaRef} className="editorial-section">
+        <div className="section-header">
+          <div className="eyebrow">YOUR ARENA. YOUR ARENA RANKING.</div>
+          <h2>COMPETE HEAD-TO-HEAD IN 1v1 BATTLES</h2>
+          <p className="muted">
+            Test your speed, accuracy, and depth against peers in synchronized duels. Earn XP, maintain streaks, and climb the global leaderboards.
+          </p>
+        </div>
+
+        <div className="grid-3">
+          <div className="card">
+            <div className="capability-icon" style={{ backgroundColor: "var(--color-purple)", color: "#FFFFFF" }}>
+              <Swords size={22} aria-hidden />
+            </div>
+            <h3 style={{ marginTop: 14 }}>1v1 Live Duels</h3>
+            <p className="muted small">
+              Challenge any peer via email invite. Both face identical timed questions evaluated server-side.
+            </p>
+            <div style={{ marginTop: 8 }}>
+              <span className="badge badge-accent">Synchronous Grading</span>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="capability-icon">
+              <Trophy size={22} aria-hidden />
+            </div>
+            <h3 style={{ marginTop: 14 }}>Hosted Tournaments</h3>
+            <p className="muted small">
+              Join college-wide, company-sponsored, and student-run competitions with scheduled windows and real prizes.
+            </p>
+            <div style={{ marginTop: 8 }}>
+              <span className="badge badge-primary">Ranked Contests</span>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="capability-icon" style={{ backgroundColor: "var(--color-plum-dark)", color: "var(--color-gold)" }}>
+              <Medal size={22} aria-hidden />
+            </div>
+            <h3 style={{ marginTop: 14 }}>Global Leaderboards</h3>
+            <p className="muted small">
+              Transparent standings for assessment mastery, daily challenge streaks, battle wins, and verified achievements.
+            </p>
+            <div style={{ marginTop: 8 }}>
+              <span className="badge">Zero Fake Metrics</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Section B: The Learning Journey */}
       <section id="journey" ref={journeyRef} className="editorial-section">
         <div className="section-header">
           <div className="eyebrow">STEP-BY-STEP PROGRESSION</div>
-          <h2>The Journey: From theory to practical skill.</h2>
+          <h2>THE JOURNEY: FROM THEORY TO PRACTICAL SKILL.</h2>
           <p className="muted">
             Each learning cycle takes you from concept exploration to objective evaluation.
           </p>
@@ -330,8 +411,7 @@ export default function AuthPage({
             <span className="journey-step-badge">1</span>
             <h3>Subject Selection</h3>
             <p>
-              Choose from specialized curriculum tracks. Start with Python Programming
-              foundation concepts.
+              Choose from specialized curriculum tracks: Python, AI/ML, Biology, and Business.
             </p>
           </div>
 
@@ -339,8 +419,7 @@ export default function AuthPage({
             <span className="journey-step-badge">2</span>
             <h3>Server Assessment</h3>
             <p>
-              Complete a focused 5-question evaluation graded by server-side logic
-              with real-time feedback.
+              Complete a focused 5-question evaluation graded by server-side logic with instant feedback.
             </p>
           </div>
 
@@ -348,8 +427,7 @@ export default function AuthPage({
             <span className="journey-step-badge">3</span>
             <h3>Personalized Chat</h3>
             <p>
-              Deep-dive into weak areas. Ask the learning assistant questions with
-              curated follow-up prompts.
+              Deep-dive into weak areas. Ask the learning assistant questions with curated follow-up prompts.
             </p>
           </div>
 
@@ -357,8 +435,7 @@ export default function AuthPage({
             <span className="journey-step-badge">4</span>
             <h3>Skill Progress</h3>
             <p>
-              Review your score percentage, unlock achievements, and climb from
-              Beginner to Advanced mastery.
+              Review your score percentage, unlock achievements, and climb from Beginner to Advanced mastery.
             </p>
           </div>
         </div>
@@ -368,7 +445,7 @@ export default function AuthPage({
       <section id="capabilities" className="editorial-section">
         <div className="section-header">
           <div className="eyebrow">PLATFORM CAPABILITIES</div>
-          <h2>Everything you need to master practical skills.</h2>
+          <h2>EVERYTHING YOU NEED TO MASTER PRACTICAL SKILLS.</h2>
         </div>
 
         <div className="capabilities-grid">
@@ -412,7 +489,17 @@ export default function AuthPage({
             <h3>Daily Code Breaker</h3>
             <p>
               Solve a daily bite-sized code snippet puzzle to earn instant bonus
-              points and the Daily Code Breaker badge.
+              points and maintain your learning streak.
+            </p>
+          </div>
+
+          <div className="capability-card">
+            <div className="capability-icon">
+              <FolderKanban size={20} aria-hidden />
+            </div>
+            <h3>Portfolio Projects</h3>
+            <p>
+              Build practical projects graded against clear rubrics with milestone tracking and evidence submission links.
             </p>
           </div>
 
@@ -420,21 +507,9 @@ export default function AuthPage({
             <div className="capability-icon">
               <Award size={20} aria-hidden />
             </div>
-            <h3>Verifiable Badges</h3>
+            <h3>Verifiable Credentials</h3>
             <p>
-              Earn tangible digital badges as you hit learning milestones, complete
-              assessments, and maintain study momentum.
-            </p>
-          </div>
-
-          <div className="capability-card">
-            <div className="capability-icon">
-              <FileCode2 size={20} aria-hidden />
-            </div>
-            <h3>Offline Deterministic Mode</h3>
-            <p>
-              Uses PostgreSQL persistence with an optional deterministic mock AI provider.
-              Live AI mentoring requires configured Gemini credentials.
+              Earn public cryptographic-style verification IDs and certificates that employers or colleges can independently verify.
             </p>
           </div>
         </div>
@@ -444,15 +519,16 @@ export default function AuthPage({
       <section className="landing-closing-banner">
         <div className="closing-banner-inner">
           <div className="eyebrow">READY TO PROVE YOUR SKILLS?</div>
-          <h2>Begin your learning journey today.</h2>
+          <h2>BEGIN YOUR ARENA JOURNEY TODAY.</h2>
           <p className="muted">
             Free diagnostic evaluation, real-time AI tutor dialogues, and verified badges.
           </p>
-          <div style={{ marginTop: 20 }}>
+          <div style={{ marginTop: 24 }}>
             <Button
               variant="primary"
               size="lg"
               onClick={() => focusAuth("register")}
+              rightIcon={ArrowRight}
             >
               Start Learning Now
             </Button>

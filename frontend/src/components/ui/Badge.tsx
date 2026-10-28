@@ -6,6 +6,7 @@ export function Badge({
   children,
   className = "",
   title,
+  style,
 }: BadgeProps) {
   const variantClass = {
     default: "",
@@ -21,7 +22,7 @@ export function Badge({
   const classNames = ["badge", variantClass, className].filter(Boolean).join(" ");
 
   return (
-    <span className={classNames} title={title}>
+    <span className={classNames} title={title} style={style}>
       {Icon && <Icon size={12} aria-hidden />}
       {children}
     </span>
